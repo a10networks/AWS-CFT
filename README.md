@@ -3,7 +3,7 @@
 ## Introduction
 
 This is the repository of CFTs for deploying A10 ADC in the AWS environment .
-With the one click you will be able to deploy new stack with vThunder .
+With the one click you will be able to deploy new stack in AWS with vThunder .
 
 ## What is CFT (CloudFormation Template)
 
