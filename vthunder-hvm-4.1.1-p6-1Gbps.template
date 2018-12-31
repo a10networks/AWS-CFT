@@ -1,0 +1,267 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+
+  "Description" : "AWS CloudFormation Template for A10 Networks vThunder.",
+
+  "Parameters" : {
+
+    "VPCID" : {
+      "Description" : "ID of existing Virtual Private Cloud (VPC)",
+      "Type"        : "AWS::EC2::VPC::Id",
+      "MinLength"   : "1",
+      "MaxLength"   : "64",
+      "ConstraintDescription" : "must provide an existing VPC ID"
+    },
+
+    "MgmtSubnetID" : {
+      "Description" : "ID of existing Management Subnet",
+      "Type"        : "AWS::EC2::Subnet::Id",
+      "MinLength"   : "1",
+      "MaxLength"   : "64",
+      "ConstraintDescription" : "must provide an existing subnet ID"
+    },
+
+    "DataSubnetID" : {
+      "Description" : "ID of existing Data Subnet",
+      "Type"        : "AWS::EC2::Subnet::Id",
+      "MinLength"   : "1",
+      "MaxLength"   : "64",
+      "ConstraintDescription" : "must provide an existing subnet ID"
+    },
+
+    "AvailabilityZone" : {
+      "Description" : "Availability zone name where resources get created",
+      "Type"        : "AWS::EC2::AvailabilityZone::Name",
+      "MinLength"   : "1",
+      "MaxLength"   : "64",
+      "AllowedPattern" : "[-_ a-zA-Z0-9]*",
+      "ConstraintDescription" : "supports only alphanumeric characters, spaces, dashes and underscores"
+    },
+
+    "KeyName" : {
+      "Description" : "EC2 Keypair name for SSH access to the instances",
+      "Type"        : "AWS::EC2::KeyPair::KeyName",
+      "MinLength"   : "1",
+      "MaxLength"   : "64",
+      "AllowedPattern" : "[-_ a-zA-Z0-9]*",
+      "ConstraintDescription" : "supports only alphanumeric characters, spaces, dashes and underscores"
+    },
+
+    "InstanceType" : {
+      "Description"   : "EC2 instance type",
+      "Type"          : "String",
+      "Default"       : "m4.xlarge",
+      "AllowedValues" : [ "m4.xlarge", "m4.2xlarge", "m4.4xlarge", "m3.2xlarge", "c4.xlarge", "c4.2xlarge", "c4.4xlarge", "c3.xlarge", "c3.2xlarge", "c3.4xlarge", "c3.8xlarge", "g2.2xlarge", "g2.8xlarge", "p2.8xlarge", "r3.8xlarge", "d2.xlarge", "d2.2xlarge", "i2.8xlarge" ],
+      "ConstraintDescription" : "must be a valid EC2 instance type."
+    },
+
+    "AllowedSSH" : {
+      "Description" : "Source IP CIDR allowed to SSH into EC2 instance",
+      "Type"        : "String",
+      "MinLength"   : "9",
+      "MaxLength"   : "18",
+      "AllowedPattern" : "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+      "ConstraintDescription" : "must be a valid IP CIDR range of the form x.x.x.x/x."
+    },
+    "InstanceTenancy" : {
+      "Description" : "Tenant in which EC2 instance to be launched",
+      "Type"        : "String",
+      "MinLength"   : "7",
+      "MaxLength"   : "9",
+      "Default"     : "default",
+      "AllowedValues" : ["default", "dedicated"],
+      "ConstraintDescription" : "must be default or dedicated"
+    }
+
+  },
+
+  "Metadata" : {
+    "AWS::CloudFormation::Interface" : {
+      "ParameterGroups" : [ {
+        "Label"      : { "default" : "Network Configuration" },
+        "Parameters" : [ "VPCID", "MgmtSubnetID", "DataSubnetID" ]
+      }, {
+        "Label"      : { "default" : "Security Configuration" },
+        "Parameters" : [ "KeyName", "AllowedSSH" ]
+      } ],
+      "ParameterLabels" : {
+        "VPCID"            : { "default" : "VPC ID" },
+        "MgmtSubnetID"     : { "default" : "Management Subnet ID" },
+        "DataSubnetID"     : { "default" : "Data Subnet ID"       },
+        "KeyName"          : { "default" : "Keypair Name"         },
+        "AllowedSSH"       : { "default" : "SSH CIDR"             },
+        "InstanceType"     : { "default" : "Instance Type"        },
+        "AvailabilityZone" : { "default" : "Availability Zone"    }
+      }
+    }
+  },
+
+  "Mappings" : {
+    "InstanceType2Arch" : {
+      "m4.xlarge"   : { "Arch" : "HVM64"  },
+      "m4.2xlarge"  : { "Arch" : "HVM64"  },
+      "m4.4xlarge"  : { "Arch" : "HVM64"  },
+      "m3.2xlarge"  : { "Arch" : "HVM64"  },
+      "c4.xlarge"   : { "Arch" : "HVM64"  },
+      "c4.2xlarge"  : { "Arch" : "HVM64"  },
+      "c4.4xlarge"  : { "Arch" : "HVM64"  },
+      "c3.xlarge"   : { "Arch" : "HVM64"  },
+      "c3.2xlarge"  : { "Arch" : "HVM64"  },
+      "c3.4xlarge"  : { "Arch" : "HVM64"  },
+      "c3.8xlarge"  : { "Arch" : "HVM64"  },
+      "g2.2xlarge"  : { "Arch" : "HVM64"  },
+      "g2.8xlarge"  : { "Arch" : "HVM64"  },
+      "p2.8xlarge"  : { "Arch" : "HVM64"  },
+      "r3.8xlarge"  : { "Arch" : "HVM64"  },
+      "d2.xlarge"   : { "Arch" : "HVM64"  },
+      "d2.2xlarge"  : { "Arch" : "HVM64"  },
+      "i2.8xlarge"  : { "Arch" : "HVM64"  }
+    },
+
+     "RegionArch2AMI" : {
+      "us-east-1"      : {"HVM64" : "ami-c0202aba"},
+      "us-east-2"      : {"HVM64" : "ami-2f56624a"},
+      "us-west-1"      : {"HVM64" : "ami-a01719c0"},
+      "us-west-2"      : {"HVM64" : "ami-32cc4a4a"},
+      "ca-central-1"   : {"HVM64" : "ami-48b6322c"},
+      "eu-central-1"   : {"HVM64" : "ami-5adbbf35"},
+      "eu-west-1"      : {"HVM64" : "ami-7bf89302"},
+      "eu-west-2"      : {"HVM64" : "ami-c5997ca2"},
+      "ap-southeast-1" : {"HVM64" : "ami-283d7d54"},
+      "ap-southeast-2" : {"HVM64" : "ami-4741ba25"},
+      "ap-south-1"     : {"HVM64" : "ami-c50d5faa"},
+      "ap-northeast-1" : {"HVM64" : "ami-283d7d54"},
+      "ap-northeast-2" : {"HVM64" : "ami-57bf1d39"},
+      "sa-east-1"      : {"HVM64" : "ami-f56e2099"}
+    }
+
+  },
+
+  "Resources" : {
+
+    "InternetGateway" : {
+      "Type" : "AWS::EC2::InternetGateway",
+      "Properties" : {
+        "Tags" : [
+          { "Key" : "Name", "Value": "VThunder-Internet-GW" },
+          { "Key" : "Application", "Value" : { "Ref" : "AWS::StackId"} },
+          { "Key" : "Network", "Value" : "Public" }
+        ]
+      }
+    },
+
+    "AttachGateway" : {
+       "Type" : "AWS::EC2::VPCGatewayAttachment",
+       "Properties" : {
+         "VpcId" : { "Ref" : "VPCID" },
+         "InternetGatewayId" : { "Ref" : "InternetGateway" }
+       }
+    },
+
+    "PublicRouteTable" : {
+      "Type" : "AWS::EC2::RouteTable",
+      "Properties" : {
+        "VpcId" : { "Ref" : "VPCID" },
+        "Tags" : [
+          { "Key" : "Name", "Value": "VThunder-Public-Route-Table" },
+          { "Key" : "Application", "Value" : { "Ref" : "AWS::StackId"} },
+          { "Key" : "Network", "Value" : "Public" }
+        ]
+      }
+    },
+
+    "PublicRoute" : {
+      "Type" : "AWS::EC2::Route",
+      "DependsOn" : "AttachGateway",
+      "Properties" : {
+        "RouteTableId" : { "Ref" : "PublicRouteTable" },
+        "DestinationCidrBlock" : "0.0.0.0/0",
+        "GatewayId" : { "Ref" : "InternetGateway" }
+      }
+    },
+
+    "PublicSubnetRouteTableAssociation" : {
+      "Type" : "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties" : {
+        "SubnetId" : { "Ref" : "MgmtSubnetID" },
+        "RouteTableId" : { "Ref" : "PublicRouteTable" }
+      }
+    },
+
+    "SecurityGroup" : {
+      "Type" : "AWS::EC2::SecurityGroup",
+      "Properties" : {
+        "GroupDescription" : "Enable HTTP, HTTPS and SSH access",
+        "VpcId" : { "Ref" : "VPCID" },
+        "SecurityGroupIngress" : [
+          { "IpProtocol" : "tcp", "FromPort" : "80", "ToPort" : "80", "CidrIp" : "0.0.0.0/0" },
+          { "IpProtocol" : "tcp", "FromPort" : "443", "ToPort" : "443", "CidrIp" : "0.0.0.0/0" },
+          { "IpProtocol" : "tcp", "FromPort" : "22", "ToPort" : "22", "CidrIp" : { "Ref" : "AllowedSSH" } }
+        ],
+        "SecurityGroupEgress" : [
+          { "IpProtocol" : "-1", "CidrIp" : "0.0.0.0/0" }
+        ],
+        "Tags" : [
+          { "Key" : "Name", "Value" : "VThunder-Security-Group" }
+        ]
+      }
+    },
+
+    "PrivateNetworkInterface" : {
+      "Type" : "AWS::EC2::NetworkInterface",
+      "Properties" : {
+        "Description" : "Private network interface",
+        "SubnetId" : { "Ref" : "DataSubnetID" },
+        "GroupSet" : [ { "Ref" : "SecurityGroup" } ]
+      }
+    },
+
+    "NetworkInterfaceAttachment" : {
+      "Type" : "AWS::EC2::NetworkInterfaceAttachment",
+      "Properties" : {
+        "InstanceId" : { "Ref" : "Instance" },
+        "NetworkInterfaceId" : { "Ref" : "PrivateNetworkInterface" },
+        "DeviceIndex" : "1"
+      }
+    },
+
+    "Instance" : {
+      "Type" : "AWS::EC2::Instance",
+      "DependsOn" : ["AttachGateway", "PrivateNetworkInterface"],
+      "Properties" : {
+        "InstanceType" : { "Ref" : "InstanceType" },
+        "AvailabilityZone" : { "Ref" : "AvailabilityZone" },
+        "ImageId" : {
+          "Fn::FindInMap" : [ "RegionArch2AMI", { "Ref" : "AWS::Region" }, {
+          "Fn::FindInMap" : [ "InstanceType2Arch", { "Ref" : "InstanceType" }, "Arch" ] } ]
+        },
+        "NetworkInterfaces" : [
+          { "DeviceIndex" : "0",
+            "AssociatePublicIpAddress" : "true",
+            "DeleteOnTermination" : "true",
+            "SubnetId" : { "Ref" : "MgmtSubnetID" },
+            "GroupSet" : [ { "Ref" : "SecurityGroup" } ]
+          }
+        ],
+        "KeyName" : { "Ref" : "KeyName" },
+        "Tenancy" : { "Ref" : "InstanceTenancy" },
+        "Tags" : [
+          { "Key" : "Name", "Value" : "VThunder-Instance" }
+        ]
+      }
+    }
+  },
+
+  "Outputs" : {
+    "InstanceId" : {
+      "Description" : "Instance ID of the newly created A10 VThunder VM",
+      "Value" : { "Ref" : "Instance" }
+    },
+    "PublicURL" : {
+      "Description" : "URL to access A10 vThunder",
+      "Value" : { "Fn::Join" : [ "", ["http://", { "Fn::GetAtt" : ["Instance", "PublicIp"] } ] ] }
+    }
+  }
+
+}
+
