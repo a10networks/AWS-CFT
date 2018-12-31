@@ -28,7 +28,7 @@ Regions need to be selected after clicking on the link .
 Deploy new stack with with 1 Gbps license vThunder
 
 <a href="https://console.aws.amazon.com/cloudformation/home?region=us-west-2#/stacks/new?templateURL=https://s3.amazonaws.com/pareshn/CFTs/vthunder-hvm-4.1.1-p6-1Gbps.template">  
-   <img src="https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png"/></a>
+   <img src="https://github.com/a10networks/AWS-CFT/blob/master/launchstack.png"/></a>
 
 
 ## Deploy New Stack with 500 Mbps vThunder
@@ -36,7 +36,7 @@ Deploy new stack with with 1 Gbps license vThunder
 Deploy new stack with 500 Mbps license vThunder
 
 <a href="https://console.aws.amazon.com/cloudformation/home?region=us-west-2#/stacks/new?templateURL=https://s3.amazonaws.com/pareshn/CFTs/vthunder-hvm-4.1.1-p6-500MBP.template">  
-   <img src="https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png"/></a>
+   <img src="https://github.com/a10networks/AWS-CFT/blob/master/launchstack.png"/></a>
    
 
 ## Deploy New Stack with BYOL vThunder
@@ -44,7 +44,7 @@ Deploy new stack with 500 Mbps license vThunder
 Deploy new stack with BYOL vThunder
 
 <a href="https://console.aws.amazon.com/cloudformation/home?region=us-west-2#/stacks/new?templateURL=https://s3.amazonaws.com/pareshn/CFTs/vthunder-hvm-4.1.1-p6-BYOL.template">  
-   <img src="https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png"/></a>
+   <img src="https://github.com/a10networks/AWS-CFT/blob/master/launchstack.png"/></a>
 
 
 
