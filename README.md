@@ -21,7 +21,7 @@ Below is the sample topology showing vThunder deployed using the CFT .
 
 Below are the sample CFTs which can be use to deploy different flavours of vThunder.
 Regions need to be selected after clicking on the link .
-https://github.com/pareshvn/AWScft/blob/master/vthunder-hvm-4.1.1-p6-1Gbps.txt
+
 
 ## Deploy New Stack with 1 Gbps vThunder 
 
