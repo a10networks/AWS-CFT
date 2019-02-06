@@ -55,7 +55,7 @@ Deploy new stack with BYOL vThunder license by clicking on the "launch stack" bu
 
 <br><br>For sample CFT please <a href="">click here</a> 
 
-More information on cost and licensing please <a href="https://github.com/a10networks/AWS-CFT/blob/master/vthunder-hvm-4.1.1-p6-1Gbps.template">click here</a>. 
+More information on cost and licensing please <a href="https://aws.amazon.com/marketplace/seller-profile?id=0cda37b3-aa1a-4c9d-8daf-c396572cc98b">click here</a>. 
 
 
 
