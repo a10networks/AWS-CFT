@@ -1,0 +1,1650 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "An AWS CFT template for GSLB.",
+  "Parameters": {
+    "Zone": {
+      "Description": "Availability zone name where resources get created",
+      "Type": "AWS::EC2::AvailabilityZone::Name",
+      "MinLength": "1",
+      "MaxLength": "64",
+      "AllowedPattern": "[-_ a-zA-Z0-9]*",
+      "ConstraintDescription": "supports only alphanumeric characters, spaces, dashes and underscores"
+    },
+    "SSHKeyName": {
+      "Description": "vThunder and linux server Keypair name for SSH access to the instances",
+      "Type": "AWS::EC2::KeyPair::KeyName",
+      "MinLength": "1",
+      "MaxLength": "64",
+      "AllowedPattern": "[-_ a-zA-Z0-9]*",
+      "ConstraintDescription": "supports only alphanumeric characters, spaces, dashes and underscores"
+    },
+    "InstanceTypevThunder": {
+      "Description": "vThunder instance type",
+      "Type": "String",
+      "Default": "m4.xlarge",
+      "AllowedValues": [
+        "c4.xlarge",
+        "c4.4xlarge",
+        "c4.8xlarge",
+        "d2.xlarge",
+        "d2.2xlarge",
+        "d2.4xlarge",
+        "d2.8xlarge",
+        "m4.xlarge",
+        "m4.2xlarge",
+        "m4.4xlarge",
+        "m4.10xlarge",
+        "i2.xlarge",
+        "i2.2xlarge",
+        "i2.4xlarge",
+        "i2.8xlarge",
+        "c5d.large",
+        "c5d.9xlarge",
+        "c5d.2xlarge",
+        "c5d.4xlarge",
+        "c5.xlarge",
+        "c5.2xlarge",
+        "c5.4xlarge",
+        "c5.9xlarge",
+        "g3.4xlarge",
+        "g3.8xlarge",
+        "i3.large",
+        "i3.xlarge",
+        "i3.2xlarge",
+        "i3.4xlarge",
+        "i3.8xlarge",
+        "m5d.large",
+        "m5d.xlarge",
+        "m5d.2xlarge",
+        "m5d.4xlarge",
+        "m5.large",
+        "m5.xlarge",
+        "m5.2xlarge",
+        "m5.4xlarge",
+        "r5d.large",
+        "r5d.xlarge",
+        "r5d.2xlarge",
+        "r5d.4xlarge",
+        "r5.large",
+        "r5.xlarge",
+        "r5.2xlarge",
+        "r5.4xlarge",
+        "r4.large",
+        "r4.xlarge",
+        "r4.2xlarge",
+        "r4.4xlarge",
+        "r4.8xlarge",
+        "t3.medium",
+        "t3.large",
+        "t3.xlarge",
+        "t3.2xlarge",
+        "z1d.large",
+        "z1d.xlarge",
+        "z1d.2xlarge",
+        "z1d.3xlarge",
+        "z1d.6xlarge"
+      ],
+      "ConstraintDescription": "Must be a valid EC2 instance type."
+    },
+    "ServerInstanceType": {
+      "Description": "Server instance type",
+      "Type": "String",
+      "Default": "t2.micro",
+      "AllowedValues": [
+        "t2.micro",
+        "m4.xlarge",
+        "m4.2xlarge",
+        "m4.4xlarge",
+        "m3.2xlarge",
+        "c4.xlarge",
+        "c4.2xlarge",
+        "c4.4xlarge",
+        "c3.xlarge",
+        "c3.2xlarge",
+        "c3.4xlarge",
+        "c3.8xlarge",
+        "p2.8xlarge",
+        "r3.8xlarge",
+        "d2.xlarge",
+        "d2.2xlarge",
+        "i2.8xlarge"
+      ],
+      "ConstraintDescription": "Must be a valid EC2 instance type."
+    },
+    "Tenancy": {
+      "Description": "Tenant in which EC2 instance to be launched",
+      "Type": "String",
+      "MinLength": "7",
+      "MaxLength": "9",
+      "Default": "default",
+      "AllowedValues": [
+        "default",
+        "dedicated"
+      ],
+      "ConstraintDescription": "must be default or dedicated"
+    },
+    "CidrVPC": {
+      "Description": "CIDR of the VPC",
+      "Type": "String",
+      "MinLength": "9",
+      "MaxLength": "18",
+      "Default": "10.1.0.0/16",
+      "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+      "ConstraintDescription": "must be a valid IP CIDR range of the form x.x.x.x/x."
+    },
+    "CidrMgmtSubnet": {
+      "Description": "CIDR of the Management Subnet",
+      "Type": "String",
+      "MinLength": "9",
+      "MaxLength": "18",
+      "Default": "10.1.1.0/24",
+      "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+      "ConstraintDescription": "must be a valid IP CIDR range of the form x.x.x.x/x."
+    },
+    "CidrDataSubnet1": {
+      "Description": "CIDR of the data Subnet",
+      "Type": "String",
+      "MinLength": "9",
+      "MaxLength": "18",
+      "Default": "10.1.2.0/24",
+      "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+      "ConstraintDescription": "must be a valid IP CIDR range of the form x.x.x.x/x."
+    },
+    "CidrDataSubnet2": {
+      "Description": "CIDR of the data Subnet",
+      "Type": "String",
+      "MinLength": "9",
+      "MaxLength": "18",
+      "Default": "10.1.3.0/24",
+      "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+      "ConstraintDescription": "must be a valid IP CIDR range of the form x.x.x.x/x."
+    },
+
+    "PrimaryIpGSLBMaster" : {
+      "Description" : "Client interface primary Ip of GSLB Master",
+      "Type"        : "String",
+      "Default"     : "10.1.2.117",
+      "AllowedPattern" : "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})",
+      "ConstraintDescription" : "Must be a valid IP address."
+    },
+    "PrimaryIpSite1" : {
+      "Description" : "Client interface primary Ip of Site1 in region1.",
+      "Type"        : "String",
+      "Default"     : "10.1.2.118",
+      "AllowedPattern" : "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})",
+      "ConstraintDescription" : "Must be a valid IP address."
+    },
+    "PrimaryIpSite2" : {
+      "Description" : "Client interface primary Ip of site2 in region1.",
+      "Type"        : "String",
+      "Default"     : "10.1.2.119",
+      "AllowedPattern" : "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})",
+      "ConstraintDescription" : "Must be a valid IP address."
+    },
+    "VIPGSLBMaster" : {
+      "Description" : "VIP of GSLB Master",
+      "Type"        : "String",
+      "Default"     : "10.1.2.121",
+      "AllowedPattern" : "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})",
+      "ConstraintDescription" : "Must be a valid IP address."
+    },
+    "VIPSite1" : {
+      "Description" : "VIP of Site1 in region1",
+      "Type"        : "String",
+      "Default"     : "10.1.2.123",
+      "AllowedPattern" : "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})",
+      "ConstraintDescription" : "Must be a valid IP address."
+    },
+    "VIPSite2" : {
+      "Description" : "VIP of Site2 in region1",
+      "Type"        : "String",
+      "Default"     : "10.1.2.124",
+      "AllowedPattern" : "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})",
+      "ConstraintDescription" : "Must be a valid IP address."
+    },
+    "TagkeyName": {
+      "Type": "String",
+      "Default": "name"
+    },
+    "TagKeyValue": {
+      "Type": "String",
+      "Default": "a10-vthunder-adc"
+    }
+  },
+  "Mappings": {
+    "InstanceType2Arch": {
+      "m4.xlarge": {
+        "Arch": "HVM64"
+      },
+      "c4.xlarge": {
+        "Arch": "HVM64"
+      },
+      "c4.4xlarge": {
+        "Arch": "HVM64"
+      },
+      "c4.8xlarge": {
+        "Arch": "HVM64"
+      },
+      "d2.xlarge": {
+        "Arch": "HVM64"
+      },
+      "d2.2xlarge": {
+        "Arch": "HVM64"
+      },
+      "d2.4xlarge": {
+        "Arch": "HVM64"
+      },
+      "d2.8xlarge": {
+        "Arch": "HVM64"
+      },
+      "m4.xlarge": {
+        "Arch": "HVM64"
+      },
+      "m4.2xlarge": {
+        "Arch": "HVM64"
+      },
+      "m4.4xlarge": {
+        "Arch": "HVM64"
+      },
+      "m4.10xlarge": {
+        "Arch": "HVM64"
+      },
+      "i2.xlarge": {
+        "Arch": "HVM64"
+      },
+      "i2.2xlarge": {
+        "Arch": "HVM64"
+      },
+      "i2.4xlarge": {
+        "Arch": "HVM64"
+      },
+      "i2.8xlarge": {
+        "Arch": "HVM64"
+      },
+      "c5d.large": {
+        "Arch": "HVM64"
+      },
+      "c5d.9xlarge": {
+        "Arch": "HVM64"
+      },
+      "c5d.2xlarge": {
+        "Arch": "HVM64"
+      },
+      "c5d.4xlarge": {
+        "Arch": "HVM64"
+      },
+      "c5.xlarge": {
+        "Arch": "HVM64"
+      },
+      "c5.2xlarge": {
+        "Arch": "HVM64"
+      },
+      "c5.4xlarge": {
+        "Arch": "HVM64"
+      },
+      "c5.9xlarge": {
+        "Arch": "HVM64"
+      },
+      "g3.4xlarge": {
+        "Arch": "HVM64"
+      },
+      "g3.8xlarge": {
+        "Arch": "HVM64"
+      },
+      "i3.large": {
+        "Arch": "HVM64"
+      },
+      "i3.xlarge": {
+        "Arch": "HVM64"
+      },
+      "i3.2xlarge": {
+        "Arch": "HVM64"
+      },
+      "i3.4xlarge": {
+        "Arch": "HVM64"
+      },
+      "i3.8xlarge": {
+        "Arch": "HVM64"
+      },
+      "m5d.large": {
+        "Arch": "HVM64"
+      },
+      "m5d.xlarge": {
+        "Arch": "HVM64"
+      },
+      "m5d.2xlarge": {
+        "Arch": "HVM64"
+      },
+      "m5d.4xlarge": {
+        "Arch": "HVM64"
+      },
+      "m5.large": {
+        "Arch": "HVM64"
+      },
+      "m5.xlarge": {
+        "Arch": "HVM64"
+      },
+      "m5.2xlarge": {
+        "Arch": "HVM64"
+      },
+      "m5.4xlarge": {
+        "Arch": "HVM64"
+      },
+      "r5d.large": {
+        "Arch": "HVM64"
+      },
+      "r5d.xlarge": {
+        "Arch": "HVM64"
+      },
+      "r5d.2xlarge": {
+        "Arch": "HVM64"
+      },
+      "r5d.4xlarge": {
+        "Arch": "HVM64"
+      },
+      "r5.large": {
+        "Arch": "HVM64"
+      },
+      "r5.xlarge": {
+        "Arch": "HVM64"
+      },
+      "r5.2xlarge": {
+        "Arch": "HVM64"
+      },
+      "r5.4xlarge": {
+        "Arch": "HVM64"
+      },
+      "r4.large": {
+        "Arch": "HVM64"
+      },
+      "r4.xlarge": {
+        "Arch": "HVM64"
+      },
+      "r4.2xlarge": {
+        "Arch": "HVM64"
+      },
+      "r4.4xlarge": {
+        "Arch": "HVM64"
+      },
+      "r4.8xlarge": {
+        "Arch": "HVM64"
+      },
+      "t3.medium": {
+        "Arch": "HVM64"
+      },
+      "t3.large": {
+        "Arch": "HVM64"
+      },
+      "t3.xlarge": {
+        "Arch": "HVM64"
+      },
+      "t3.2xlarge": {
+        "Arch": "HVM64"
+      },
+      "z1d.large": {
+        "Arch": "HVM64"
+      },
+      "z1d.xlarge": {
+        "Arch": "HVM64"
+      },
+      "z1d.2xlarge": {
+        "Arch": "HVM64"
+      },
+      "z1d.3xlarge": {
+        "Arch": "HVM64"
+      },
+      "z1d.6xlarge": {
+        "Arch": "HVM64"
+      }
+    },
+    "RegionArch2AMI": {
+      "us-east-1": {
+        "HVM64": "ami-0cdd0ebc526d641a7"
+      },
+      "us-east-2": {
+        "HVM64": "ami-0f0a287c00e85edd9"
+      },
+      "us-west-1": {
+        "HVM64": "ami-0ac871cc29bdc583a"
+      },
+      "us-west-2": {
+        "HVM64": "ami-010ec8cef3a23dedf"
+      },
+      "ca-central-1": {
+        "HVM64": "ami-06c8ff8970cdffcfd"
+      },
+      "eu-central-1": {
+        "HVM64": "ami-02441ec11bfbc7dc6"
+      },
+      "eu-west-1": {
+        "HVM64": "ami-024576f52a86acf4a"
+      },
+      "eu-west-2": {
+        "HVM64": "ami-05ef5727b7807e557"
+      },
+      "ap-southeast-1": {
+        "HVM64": "ami-030841e75952366b3"
+      },
+      "ap-southeast-2": {
+        "HVM64": "ami-0c50123a476a2e471"
+      },
+      "ap-south-1": {
+        "HVM64": "ami-018222810bb5a1146"
+      },
+      "ap-northeast-1": {
+        "HVM64": "ami-0bacf1dad17b9bab9"
+      },
+      "ap-northeast-2": {
+        "HVM64": "ami-01830d428532ea4a5"
+      },
+      "sa-east-1": {
+        "HVM64": "ami-02d467bb2f881fa6a"
+      }
+    }
+  },
+  "Resources": {
+    "vThunderVPCRegion1": {
+      "Type": "AWS::EC2::VPC",
+      "Properties": {
+        "CidrBlock": {
+          "Ref": "CidrVPC"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${AWS::StackName}-vpc"
+            }
+          },
+          {
+            "Key": {
+              "Ref": "TagkeyName"
+            },
+            "Value": {
+              "Ref": "TagKeyValue"
+            }
+          }
+        ]
+      }
+    },
+    "MgmtSubnet": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "VpcId": {
+          "Ref": "vThunderVPCRegion1"
+        },
+        "AvailabilityZone": {
+          "Ref": "Zone"
+        },
+        "CidrBlock": {
+          "Ref": "CidrMgmtSubnet"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${AWS::StackName}-vpc-mgmt-sub1"
+            }
+          },
+          {
+            "Key": {
+              "Ref": "TagkeyName"
+            },
+            "Value": {
+              "Ref": "TagKeyValue"
+            }
+          }
+        ]
+      }
+    },
+    "DataSubnet1": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "VpcId": {
+          "Ref": "vThunderVPCRegion1"
+        },
+        "AvailabilityZone": {
+          "Ref": "Zone"
+        },
+        "CidrBlock": {
+          "Ref": "CidrDataSubnet1"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${AWS::StackName}-vpc-data-sub1"
+            }
+          },
+          {
+            "Key": {
+              "Ref": "TagkeyName"
+            },
+            "Value": {
+              "Ref": "TagKeyValue"
+            }
+          }
+        ]
+      }
+    },
+    "DataSubnet2": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "VpcId": {
+          "Ref": "vThunderVPCRegion1"
+        },
+        "AvailabilityZone": {
+          "Ref": "Zone"
+        },
+        "CidrBlock": {
+          "Ref": "CidrDataSubnet2"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${AWS::StackName}-vpc-data-sub2"
+            }
+          },
+          {
+            "Key": {
+              "Ref": "TagkeyName"
+            },
+            "Value": {
+              "Ref": "TagKeyValue"
+            }
+          }
+        ]
+      }
+    },
+    "vThunderSecurityGroupMgmtRegion1": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Enable HTTP, HTTPS,ICMP,SNMP,NTP and SSH access",
+        "VpcId": {
+          "Ref": "vThunderVPCRegion1"
+        },
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "80",
+            "ToPort": "80",
+            "CidrIp": "0.0.0.0/0"
+          },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "443",
+            "ToPort": "443",
+            "CidrIp": "0.0.0.0/0"
+          },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "22",
+            "ToPort": "22",
+            "CidrIp": "0.0.0.0/0"
+          },
+          {
+            "IpProtocol": "icmp",
+            "FromPort": "-1",
+            "ToPort": "-1",
+            "CidrIp": "0.0.0.0/0"
+          },
+          {
+            "IpProtocol": "udp",
+            "FromPort": "161",
+            "ToPort": "161",
+            "CidrIp": "0.0.0.0/0"
+          },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "123",
+            "ToPort": "123",
+            "CidrIp": "0.0.0.0/0"
+          },
+          { "IpProtocol" : "tcp",
+            "FromPort" : "4149",
+            "ToPort" : "4149",
+            "CidrIp" : "0.0.0.0/0" }
+        ],
+        "SecurityGroupEgress": [
+          {
+            "IpProtocol": "-1",
+            "CidrIp": "0.0.0.0/0"
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${AWS::StackName}-sg-mgmt"
+            }
+          },
+          {
+            "Key": {
+              "Ref": "TagkeyName"
+            },
+            "Value": {
+              "Ref": "TagKeyValue"
+            }
+          }
+        ]
+      }
+    },
+    "vThunderSecurityGroupDataRegion1": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Enable HTTP, HTTPS, ICMP and UDP access",
+        "VpcId": {
+          "Ref": "vThunderVPCRegion1"
+        },
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "80",
+            "ToPort": "80",
+            "CidrIp": "0.0.0.0/0"
+          },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "443",
+            "ToPort": "443",
+            "CidrIp": "0.0.0.0/0"
+          },
+          {
+            "IpProtocol": "udp",
+            "FromPort": "0",
+            "ToPort": "65535",
+            "CidrIp": "0.0.0.0/0"
+          },
+          {
+            "IpProtocol": "icmp",
+            "FromPort": "-1",
+            "ToPort": "-1",
+            "CidrIp": "0.0.0.0/0"
+          },
+          { "IpProtocol" : "tcp",
+            "FromPort" : "22",
+            "ToPort" : "22",
+            "CidrIp" : "0.0.0.0/0" },
+          { "IpProtocol" : "tcp",
+            "FromPort" : "4149",
+            "ToPort" : "4149",
+            "CidrIp" : "0.0.0.0/0" }
+        ],
+        "SecurityGroupEgress": [
+          {
+            "IpProtocol": "-1",
+            "CidrIp": "0.0.0.0/0"
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${AWS::StackName}-sg-data"
+            }
+          },
+          {
+            "Key": {
+              "Ref": "TagkeyName"
+            },
+            "Value": {
+              "Ref": "TagKeyValue"
+            }
+          }
+        ]
+      }
+    },
+    "MgmtNetworkInterfaceControllerRegion1": {
+      "Type": "AWS::EC2::NetworkInterface",
+      "Properties": {
+        "Description": "Private network interface",
+        "SubnetId": {
+          "Ref": "MgmtSubnet"
+        },
+        "GroupSet": [
+          {
+            "Ref": "vThunderSecurityGroupMgmtRegion1"
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${AWS::StackName}-inst1-mgmt-nic1"
+            }
+          },
+          {
+            "Key": {
+              "Ref": "TagkeyName"
+            },
+            "Value": {
+              "Ref": "TagKeyValue"
+            }
+          }
+        ]
+      }
+    },
+    "ClientNetworkInterfaceControllerRegion1": {
+      "Type": "AWS::EC2::NetworkInterface",
+      "Properties": {
+        "Description": "Private network interface",
+        "SubnetId": {
+          "Ref": "DataSubnet1"
+        },
+        "GroupSet": [
+          {
+            "Ref": "vThunderSecurityGroupDataRegion1"
+          }
+        ],
+
+        "PrivateIpAddresses" :[{
+          "Primary" :true ,
+          "PrivateIpAddress" :{"Ref" : "PrimaryIpGSLBMaster"}
+        },{
+          "Primary" : false,
+          "PrivateIpAddress" : {"Ref" : "VIPGSLBMaster"}
+        }
+
+        ],        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${AWS::StackName}-inst1-data-nic1"
+            }
+          },
+          {
+            "Key": {
+              "Ref": "TagkeyName"
+            },
+            "Value": {
+              "Ref": "TagKeyValue"
+            }
+          }
+        ]
+      }
+    },
+    "ServerNetworkInterfaceControllerRegion1": {
+      "Type": "AWS::EC2::NetworkInterface",
+      "Properties": {
+        "Description": "Private network interface",
+        "SubnetId": {
+          "Ref": "DataSubnet2"
+        },
+        "GroupSet": [
+          {
+            "Ref": "vThunderSecurityGroupDataRegion1"
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${AWS::StackName}-inst1-data-nic2"
+            }
+          },
+          {
+            "Key": {
+              "Ref": "TagkeyName"
+            },
+            "Value": {
+              "Ref": "TagKeyValue"
+            }
+          }
+        ]
+      }
+    },
+    "MgmtNetworkInterfaceSite1Region1": {
+      "Type": "AWS::EC2::NetworkInterface",
+      "Properties": {
+        "Description": "Private network interface",
+        "SubnetId": {
+          "Ref": "MgmtSubnet"
+        },
+        "GroupSet": [
+          {
+            "Ref": "vThunderSecurityGroupMgmtRegion1"
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${AWS::StackName}-inst2-mgmt-nic1"
+            }
+          },
+          {
+            "Key": {
+              "Ref": "TagkeyName"
+            },
+            "Value": {
+              "Ref": "TagKeyValue"
+            }
+          }
+        ]
+      }
+    },
+    "ClientNetworkInterfaceSite1Region1": {
+      "Type": "AWS::EC2::NetworkInterface",
+      "Properties": {
+        "Description": "Private network interface",
+        "SubnetId": {
+          "Ref": "DataSubnet1"
+        },
+        "GroupSet": [
+          {
+            "Ref": "vThunderSecurityGroupDataRegion1"
+          }
+        ],
+
+        "PrivateIpAddresses" :[{
+          "Primary" :true ,
+          "PrivateIpAddress" :{"Ref" : "PrimaryIpSite1"}
+        },{
+          "Primary" : false,
+          "PrivateIpAddress" : {"Ref" : "VIPSite1"}
+        }
+
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${AWS::StackName}-inst2-data-nic1"
+            }
+          },
+          {
+            "Key": {
+              "Ref": "TagkeyName"
+            },
+            "Value": {
+              "Ref": "TagKeyValue"
+            }
+          }
+        ]
+      }
+    },
+    "ServerNetworkInterfaceSite1Region1": {
+      "Type": "AWS::EC2::NetworkInterface",
+      "Properties": {
+        "Description": "Private network interface",
+        "SubnetId": {
+          "Ref": "DataSubnet2"
+        },
+        "SecondaryPrivateIpAddressCount": 1,
+        "GroupSet": [
+          {
+            "Ref": "vThunderSecurityGroupDataRegion1"
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${AWS::StackName}-inst2-data-nic2"
+            }
+          },
+          {
+            "Key": {
+              "Ref": "TagkeyName"
+            },
+            "Value": {
+              "Ref": "TagKeyValue"
+            }
+          }
+        ]
+      }
+    },
+    "MgmtNetworkInterfaceSite2Region1": {
+      "Type": "AWS::EC2::NetworkInterface",
+      "Properties": {
+        "Description": "Private network interface",
+        "SubnetId": {
+          "Ref": "MgmtSubnet"
+        },
+        "GroupSet": [
+          {
+            "Ref": "vThunderSecurityGroupMgmtRegion1"
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${AWS::StackName}-inst3-mgmt-nic1"
+            }
+          },
+          {
+            "Key": {
+              "Ref": "TagkeyName"
+            },
+            "Value": {
+              "Ref": "TagKeyValue"
+            }
+          }
+        ]
+      }
+    },
+    "ClientNetworkInterfaceSite2Region1": {
+      "Type": "AWS::EC2::NetworkInterface",
+      "Properties": {
+        "Description": "Private network interface",
+        "SubnetId": {
+          "Ref": "DataSubnet1"
+        },
+        "GroupSet": [
+          {
+            "Ref": "vThunderSecurityGroupDataRegion1"
+          }
+        ],
+
+        "PrivateIpAddresses" :[{
+          "Primary" :true ,
+          "PrivateIpAddress" :{"Ref" : "PrimaryIpSite2"}
+        },{
+          "Primary" : false,
+          "PrivateIpAddress" : {"Ref" : "VIPSite2"}
+        }
+
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${AWS::StackName}-inst3-data-nic1"
+            }
+          },
+          {
+            "Key": {
+              "Ref": "TagkeyName"
+            },
+            "Value": {
+              "Ref": "TagKeyValue"
+            }
+          }
+        ]
+      }
+    },
+    "ServerNetworkInterfaceSite2Region1": {
+      "Type": "AWS::EC2::NetworkInterface",
+      "Properties": {
+        "Description": "Private network interface",
+        "SubnetId": {
+          "Ref": "DataSubnet2"
+        },
+        "GroupSet": [
+          {
+            "Ref": "vThunderSecurityGroupDataRegion1"
+          }
+        ],
+        "SecondaryPrivateIpAddressCount": 1,
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${AWS::StackName}-inst3-data-nic2"
+            }
+          },
+          {
+            "Key": {
+              "Ref": "TagkeyName"
+            },
+            "Value": {
+              "Ref": "TagKeyValue"
+            }
+          }
+        ]
+      }
+    },
+    "Server1Region1": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "InstanceType": {
+          "Ref": "ServerInstanceType"
+        },
+        "AvailabilityZone": {
+          "Ref": "Zone"
+        },
+        "ImageId": "ami-0574da719dca65348",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${AWS::StackName}-server1"
+            }
+          },
+          {
+            "Key": {
+              "Ref": "TagkeyName"
+            },
+            "Value": {
+              "Ref": "TagKeyValue"
+            }
+          }
+        ],
+        "NetworkInterfaces": [
+          {
+            "AssociatePublicIpAddress": "true",
+            "DeviceIndex": "0",
+            "SubnetId": {
+              "Ref": "DataSubnet2"
+            },
+            "GroupSet": [
+              {
+                "Ref": "vThunderSecurityGroupDataRegion1"
+              }
+            ]
+          }
+        ],
+        "KeyName": {
+          "Ref": "SSHKeyName"
+        },
+        "Tenancy": {
+          "Ref": "Tenancy"
+        }
+      }
+    },
+    "Server2Region1": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "InstanceType": {
+          "Ref": "ServerInstanceType"
+        },
+        "AvailabilityZone": {
+          "Ref": "Zone"
+        },
+        "ImageId": "ami-0574da719dca65348",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${AWS::StackName}-server2"
+            }
+          },
+          {
+            "Key": {
+              "Ref": "TagkeyName"
+            },
+            "Value": {
+              "Ref": "TagKeyValue"
+            }
+          }
+        ],
+        "NetworkInterfaces": [
+          {
+            "AssociatePublicIpAddress": "true",
+            "DeviceIndex": "0",
+            "SubnetId": {
+              "Ref": "DataSubnet2"},
+              "GroupSet": [
+                {
+                  "Ref": "vThunderSecurityGroupDataRegion1"
+                }
+              ]
+            }
+        ],
+        "KeyName": {
+          "Ref": "SSHKeyName"
+        },
+        "Tenancy": {
+          "Ref": "Tenancy"
+        }
+      }
+    },
+    "vThunderControllerRegion1": {
+      "Type": "AWS::EC2::Instance",
+      "DependsOn": [
+        "MgmtNetworkInterfaceControllerRegion1",
+        "ClientNetworkInterfaceControllerRegion1",
+        "ServerNetworkInterfaceControllerRegion1"
+      ],
+      "Properties": {
+        "InstanceType": {
+          "Ref": "InstanceTypevThunder"
+        },
+        "AvailabilityZone": {
+          "Ref": "Zone"
+        },
+        "ImageId": {
+          "Fn::FindInMap": [
+            "RegionArch2AMI",
+            {
+              "Ref": "AWS::Region"
+            },
+            {
+              "Fn::FindInMap": [
+                "InstanceType2Arch",
+                {
+                  "Ref": "InstanceTypevThunder"
+                },
+                "Arch"
+              ]
+            }
+          ]
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${AWS::StackName}-controller-region1"
+            }
+          },
+          {
+            "Key": {
+              "Ref": "TagkeyName"
+            },
+            "Value": {
+              "Ref": "TagKeyValue"
+            }
+          }
+        ],
+        "NetworkInterfaces": [
+          {
+            "DeviceIndex": "0",
+            "NetworkInterfaceId": {
+              "Ref": "MgmtNetworkInterfaceControllerRegion1"
+            }
+          },
+          {
+            "DeviceIndex": "1",
+            "NetworkInterfaceId": {
+              "Ref": "ClientNetworkInterfaceControllerRegion1"
+            }
+          },
+          {
+            "DeviceIndex": "2",
+            "NetworkInterfaceId": {
+              "Ref": "ServerNetworkInterfaceControllerRegion1"
+            }
+          }
+        ],
+        "KeyName": {
+          "Ref": "SSHKeyName"
+        },
+        "Tenancy": {
+          "Ref": "Tenancy"
+        }
+      }
+    },
+    "vThunderSite1Region1": {
+      "Type": "AWS::EC2::Instance",
+      "DependsOn": [
+        "MgmtNetworkInterfaceSite1Region1",
+        "ClientNetworkInterfaceSite1Region1",
+        "ServerNetworkInterfaceSite1Region1"
+      ],
+      "Properties": {
+        "InstanceType": {
+          "Ref": "InstanceTypevThunder"
+        },
+        "AvailabilityZone": {
+          "Ref": "Zone"
+        },
+        "ImageId": {
+          "Fn::FindInMap": [
+            "RegionArch2AMI",
+            {
+              "Ref": "AWS::Region"
+            },
+            {
+              "Fn::FindInMap": [
+                "InstanceType2Arch",
+                {
+                  "Ref": "InstanceTypevThunder"
+                },
+                "Arch"
+              ]
+            }
+          ]
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${AWS::StackName}-site1-region1"
+            }
+          },
+          {
+            "Key": {
+              "Ref": "TagkeyName"
+            },
+            "Value": {
+              "Ref": "TagKeyValue"
+            }
+          }
+        ],
+        "NetworkInterfaces": [
+          {
+            "DeviceIndex": "0",
+            "NetworkInterfaceId": {
+              "Ref": "MgmtNetworkInterfaceSite1Region1"
+            }
+          },
+          {
+            "DeviceIndex": "1",
+            "NetworkInterfaceId": {
+              "Ref": "ClientNetworkInterfaceSite1Region1"
+            }
+          },
+          {
+            "DeviceIndex": "2",
+            "NetworkInterfaceId": {
+              "Ref": "ServerNetworkInterfaceSite1Region1"
+            }
+          }
+        ],
+        "KeyName": {
+          "Ref": "SSHKeyName"
+        },
+        "Tenancy": {
+          "Ref": "Tenancy"
+        }
+      }
+    },
+    "vThunderSite2Region1": {
+      "Type": "AWS::EC2::Instance",
+      "DependsOn": [
+        "MgmtNetworkInterfaceSite2Region1",
+        "ClientNetworkInterfaceSite2Region1",
+        "ServerNetworkInterfaceSite2Region1"
+      ],
+      "Properties": {
+        "InstanceType": {
+          "Ref": "InstanceTypevThunder"
+        },
+        "AvailabilityZone": {
+          "Ref": "Zone"
+        },
+        "ImageId": {
+          "Fn::FindInMap": [
+            "RegionArch2AMI",
+            {
+              "Ref": "AWS::Region"
+            },
+            {
+              "Fn::FindInMap": [
+                "InstanceType2Arch",
+                {
+                  "Ref": "InstanceTypevThunder"
+                },
+                "Arch"
+              ]
+            }
+          ]
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${AWS::StackName}-site2-region1"
+            }
+          },
+          {
+            "Key": {
+              "Ref": "TagkeyName"
+            },
+            "Value": {
+              "Ref": "TagKeyValue"
+            }
+          }
+        ],
+        "NetworkInterfaces": [
+          {
+            "DeviceIndex": "0",
+            "NetworkInterfaceId": {
+              "Ref": "MgmtNetworkInterfaceSite2Region1"
+            }
+          },
+          {
+            "DeviceIndex": "1",
+            "NetworkInterfaceId": {
+              "Ref": "ClientNetworkInterfaceSite2Region1"
+            }
+          },
+          {
+            "DeviceIndex": "2",
+            "NetworkInterfaceId": {
+              "Ref": "ServerNetworkInterfaceSite2Region1"
+            }
+          }
+        ],
+        "KeyName": {
+          "Ref": "SSHKeyName"
+        },
+        "Tenancy": {
+          "Ref": "Tenancy"
+        }
+      }
+    },
+    "vThunderEIPController1": {
+      "Type": "AWS::EC2::EIP",
+      "DependsOn" : [ "vThunderControllerRegion1"],
+      "Properties": {
+        "Domain": "vpc",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${AWS::StackName}-inst1-mgmt-nic1-ip"
+            }
+          },
+          {
+            "Key": {
+              "Ref": "TagkeyName"
+            },
+            "Value": {
+              "Ref": "TagKeyValue"
+            }
+          }
+        ]
+      }
+    },
+    "AssociatePublicIpvThunderController1": {
+      "Type": "AWS::EC2::EIPAssociation",
+      "Properties": {
+        "AllocationId": {
+          "Fn::GetAtt": [
+            "vThunderEIPController1",
+            "AllocationId"
+          ]
+        },
+        "NetworkInterfaceId": {
+          "Ref": "MgmtNetworkInterfaceControllerRegion1"
+        }
+      }
+    },
+    "vThunderEIPController2": {
+      "Type": "AWS::EC2::EIP",
+      "DependsOn" : [ "vThunderControllerRegion1"],
+      "Properties": {
+        "Domain": "vpc",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${AWS::StackName}-inst1-data1-nic1-ip"
+            }
+          },
+          {
+            "Key": {
+              "Ref": "TagkeyName"
+            },
+            "Value": {
+              "Ref": "TagKeyValue"
+            }
+          }
+        ]
+      }
+    },
+    "AssociatePublicIpvThunderController2": {
+      "Type": "AWS::EC2::EIPAssociation",
+      "Properties": {
+        "AllocationId": {
+          "Fn::GetAtt": [
+            "vThunderEIPController2",
+            "AllocationId"
+          ]
+        },
+        "NetworkInterfaceId": {
+          "Ref": "ClientNetworkInterfaceControllerRegion1"
+        },
+        "PrivateIpAddress": {"Ref" : "VIPGSLBMaster"}
+      }
+    },
+    "vThunderEIPSite1": {
+      "Type": "AWS::EC2::EIP",
+      "DependsOn" : [ "vThunderSite1Region1"],
+      "Properties": {
+        "Domain": "vpc",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${AWS::StackName}-inst2-mgmt-nic1-ip"
+            }
+          },
+          {
+            "Key": {
+              "Ref": "TagkeyName"
+            },
+            "Value": {
+              "Ref": "TagKeyValue"
+            }
+          }
+        ]
+      }
+    },
+    "AssociatePublicIpvThunderSite11": {
+      "Type": "AWS::EC2::EIPAssociation",
+      "Properties": {
+        "AllocationId": {
+          "Fn::GetAtt": [
+            "vThunderEIPSite1",
+            "AllocationId"
+          ]
+        },
+        "NetworkInterfaceId": {
+          "Ref": "MgmtNetworkInterfaceSite1Region1"
+        }
+      }
+    },
+    "vThunderEIPSite12": {
+      "Type": "AWS::EC2::EIP",
+      "DependsOn" : [ "vThunderSite1Region1"],
+      "Properties": {
+        "Domain": "vpc",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${AWS::StackName}-inst2-data1-nic1-ip"
+            }
+          },
+          {
+            "Key": {
+              "Ref": "TagkeyName"
+            },
+            "Value": {
+              "Ref": "TagKeyValue"
+            }
+          }
+        ]
+      }
+    },
+    "AssociatePublicIpvThunderSite12": {
+      "Type": "AWS::EC2::EIPAssociation",
+      "Properties": {
+        "AllocationId": {
+          "Fn::GetAtt": [
+            "vThunderEIPSite12",
+            "AllocationId"
+          ]
+        },
+        "NetworkInterfaceId": {
+          "Ref": "ClientNetworkInterfaceSite1Region1"
+        },
+        "PrivateIpAddress": {"Ref" : "VIPSite1"}
+      }
+    },
+    "vThunderEIPSite21": {
+      "Type": "AWS::EC2::EIP",
+      "DependsOn" : [ "vThunderSite2Region1"],
+      "Properties": {
+        "Domain": "vpc",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${AWS::StackName}-inst3-mgmt-nic1-ip"
+            }
+          },
+          {
+            "Key": {
+              "Ref": "TagkeyName"
+            },
+            "Value": {
+              "Ref": "TagKeyValue"
+            }
+          }
+        ]
+      }
+    },
+    "AssociatePublicIpvThunderSite21": {
+      "Type": "AWS::EC2::EIPAssociation",
+      "Properties": {
+        "AllocationId": {
+          "Fn::GetAtt": [
+            "vThunderEIPSite21",
+            "AllocationId"
+          ]
+        },
+        "NetworkInterfaceId": {
+          "Ref": "MgmtNetworkInterfaceSite2Region1"
+        }
+      }
+    },
+    "vThunderEIPSite22": {
+      "Type": "AWS::EC2::EIP",
+      "DependsOn" : [ "vThunderSite2Region1"],
+      "Properties": {
+        "Domain": "vpc",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${AWS::StackName}-inst3-data1-nic1-ip"
+            }
+          },
+          {
+            "Key": {
+              "Ref": "TagkeyName"
+            },
+            "Value": {
+              "Ref": "TagKeyValue"
+            }
+          }
+        ]
+      }
+    },
+    "AssociatePublicIpvThunderSite22": {
+      "Type": "AWS::EC2::EIPAssociation",
+      "Properties": {
+        "AllocationId": {
+          "Fn::GetAtt": [
+            "vThunderEIPSite22",
+            "AllocationId"
+          ]
+        },
+        "NetworkInterfaceId": {
+          "Ref": "ClientNetworkInterfaceSite2Region1"
+        },
+        "PrivateIpAddress": {"Ref" : "VIPSite2"}
+      }
+    },
+    "vThunderInternetGateway": {
+      "Type": "AWS::EC2::InternetGateway",
+      "Properties": {
+        "Tags": [
+          {
+            "Key": "name",
+            "Value": {
+              "Fn::Sub": "${AWS::StackName}-internet-gateway"
+            }
+          },
+          {
+            "Key": {
+              "Ref": "TagkeyName"
+            },
+            "Value": {
+              "Ref": "TagKeyValue"
+            }
+          }
+        ]
+      }
+    },
+    "AttachGatewayvThunder": {
+      "Type": "AWS::EC2::VPCGatewayAttachment",
+      "Properties": {
+        "VpcId": {
+          "Ref": "vThunderVPCRegion1"
+        },
+        "InternetGatewayId": {
+          "Ref": "vThunderInternetGateway"
+        }
+      }
+    },
+    "PublicRouteTablevThunderVPC": {
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": {
+        "VpcId": {
+          "Ref": "vThunderVPCRegion1"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${AWS::StackName}-public-route-table"
+            }
+          },
+          {
+            "Key": {
+              "Ref": "TagkeyName"
+            },
+            "Value": {
+              "Ref": "TagKeyValue"
+            }
+          }
+        ]
+      }
+    },
+    "PublicRoutevThunder": {
+      "Type": "AWS::EC2::Route",
+      "DependsOn": "AttachGatewayvThunder",
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "PublicRouteTablevThunderVPC"
+        },
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "GatewayId": {
+          "Ref": "vThunderInternetGateway"
+        }
+      }
+    },
+    "PublicSubnetRouteTablevThunderAssociationMgmt": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "SubnetId": {
+          "Ref": "MgmtSubnet"
+        },
+        "RouteTableId": {
+          "Ref": "PublicRouteTablevThunderVPC"
+        }
+      }
+    },
+    "PublicSubnetRouteTablevThunderAssociationData1": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "SubnetId": {
+          "Ref": "DataSubnet1"
+        },
+        "RouteTableId": {
+          "Ref": "PublicRouteTablevThunderVPC"
+        }
+      }
+    },
+    "PublicSubnetRouteTablevThunderAssociationData2": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "SubnetId": {
+          "Ref": "DataSubnet2"
+        },
+        "RouteTableId": {
+          "Ref": "PublicRouteTablevThunderVPC"
+        }
+      }
+    }
+  }
+}
+
+
+

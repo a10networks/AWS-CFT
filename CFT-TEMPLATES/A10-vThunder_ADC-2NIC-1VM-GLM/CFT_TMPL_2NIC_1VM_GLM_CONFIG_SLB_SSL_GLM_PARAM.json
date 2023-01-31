@@ -1,0 +1,102 @@
+{
+  "parameters": {
+    "stackDetails": {
+      "value": [
+        {
+          "stackName": "vth"
+        }
+      ]},
+    "server-list": {
+      "value": [
+        {
+          "port-list": [
+            {
+              "port-number": 53,
+              "protocol": "udp"
+            },
+            {
+              "port-number": 80,
+              "protocol": "tcp"
+            },
+            {
+              "port-number": 443,
+              "protocol": "tcp"
+            }
+          ]
+        }
+      ]
+    },
+    "serviceGroupList": {
+      "value": [
+        {
+          "name": "sg443",
+          "protocol": "tcp",
+          "member-list": [
+            {
+              "port": 443
+            }
+          ]
+        },
+        {
+          "name": "sg53",
+          "protocol": "udp",
+          "member-list": [
+            {
+              "port": 53
+            }
+          ]
+        },
+        {
+          "name": "sg80",
+          "protocol": "tcp",
+          "member-list": [
+            {
+              "port": 80
+            }
+          ]
+        }
+      ]
+    },
+    "virtualServerList": {
+      "virtual-server-name": "vip",
+      "metadata": {
+        "description": "virtual server is using ethernet 1 ip address"
+      },
+      "value": [
+        {
+          "port-number": 53,
+          "protocol": "udp",
+          "auto": 1,
+          "service-group": "sg53"
+        },
+        {
+          "port-number": 80,
+          "protocol": "http",
+          "auto": 1,
+          "service-group": "sg80"
+        },
+        {
+          "port-number": 443,
+          "protocol": "https",
+          "auto": 1,
+          "service-group": "sg443"
+        }
+      ]
+    },
+   "sslConfig": {
+      "requestTimeOut": 40,
+          "Path": "server.pem",
+          "File": "server",
+          "certificationType": "pem"
+    },
+    "user_name": {
+        "value": "xxxxxxxx@a10networks.com"
+      },
+      "user_password": {
+        "value": "xxxxxxxx"
+      },
+      "entitlement_token": {
+        "value": "xxxxxxxx"
+      }
+  }
+}
