@@ -1,4 +1,4 @@
-# A10 Networks AWS Cloud Formation Templates Release v1.1.0
+# A10 Networks AWS Cloud Formation Templates Release v1.0.0
 These Cloudformation templates can be deployed through the AWS console.
 
 - **AWS console**<br>
@@ -9,8 +9,6 @@ For more information on using this option please refer to AWS documentation: htt
 For all A10 licenses, GLM (Global License Manager) is the authoritative service. 
 All A10 products conform with license and licensing policies dictated by GLM. 
 GLM is available at https://glm.a10networks.com. 
-Default License Manager for HC is set to GLM. 
-User can change this in Controller scope by logging in as Super-admin.
 
 # A10’s Cloud Formation Template Information
 A10’s AWS CFT templates listed here are for deploying vThunder ADC (Application Delivery Controller) in different design and configuration namely:
