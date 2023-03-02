@@ -488,29 +488,9 @@
         ]
       }
     },
-    "ServerNetworkInterface" : {
-      "Type" : "AWS::EC2::NetworkInterface",
-      "Properties" : {
-        "Description" : "Private network interface",
-        "SubnetId" : { "Ref" : "DataSubnet2" },
-        "GroupSet" : [ { "Ref" : "vThunderSecurityGroupData" } ],
-        "SecondaryPrivateIpAddressCount" : 1,
-        "Tags" : [
-          { "Key" : "Name", "Value" : {"Fn::Sub":"${AWS::StackName}-server-interface" }},
-          {"Key" : {
-            "Ref" : "TagName"
-          },
-            "Value": {
-              "Ref" : "TagValue"
-            }
-          }
-        ]
-      }
-    },
 
     "Server" : {
       "Type" : "AWS::EC2::Instance",
-      "DependsOn" : [ "ServerNetworkInterface"],
       "Properties" : {
         "InstanceType": {
           "Ref": "ServerInstanceType"
@@ -545,6 +525,44 @@
         "KeyName" : { "Ref" : "KeyPairName" }
       }
     },
+
+    "FTPServer" : {
+      "Type" : "AWS::EC2::Instance",
+      "Properties" : {
+        "InstanceType": {
+          "Ref": "ServerInstanceType"
+        },
+        "AvailabilityZone": {
+          "Ref": "Zone"
+        },
+        "ImageId": "ami-08c40ec9ead489470",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${AWS::StackName}-FTP-server"
+            }
+          },
+          {
+            "Key": {
+              "Ref": "TagName"
+            },
+            "Value": {
+              "Ref": "TagValue"
+            }
+          }
+        ],
+        "NetworkInterfaces" : [
+          { "GroupSet" : [ { "Ref" : "vThunderSecurityGroupData" } ],
+            "AssociatePublicIpAddress": "true",
+            "DeviceIndex" : "0",
+            "SubnetId": { "Ref" : "DataSubnet2"}
+          }
+        ],
+        "KeyName" : { "Ref" : "KeyPairName" }
+      }
+    },
+
 
     "vThunder1" : {
       "Type" : "AWS::EC2::Instance",

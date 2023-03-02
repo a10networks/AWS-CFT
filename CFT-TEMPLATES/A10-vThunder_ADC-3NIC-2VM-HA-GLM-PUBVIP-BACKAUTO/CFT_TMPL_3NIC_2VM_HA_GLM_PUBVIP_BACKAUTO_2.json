@@ -151,6 +151,13 @@
       "AllowedPattern" : "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})",
       "ConstraintDescription" : "Must be a valid IP address."
     },
+	 "ServerInstanceType" : {
+      "Description"   : "Server instance type",
+      "Type"          : "String",
+      "Default"       : "t2.micro",
+      "AllowedValues" : [ "t2.micro","m4.xlarge", "m4.2xlarge", "m4.4xlarge", "m3.2xlarge", "c4.xlarge", "c4.2xlarge", "c4.4xlarge", "c3.xlarge", "c3.2xlarge", "c3.4xlarge", "c3.8xlarge","p2.8xlarge", "r3.8xlarge", "d2.xlarge", "d2.2xlarge", "i2.8xlarge" ],
+      "ConstraintDescription" : "must be a valid instance type."
+    },
     "TagName" : {
       "Type" : "String",
       "Default" : "name"
@@ -583,6 +590,46 @@
         ]
       }
     },
+
+ "FtpServer" : {
+      "Type" : "AWS::EC2::Instance",
+      "Properties" : {
+        "InstanceType": {
+          "Ref": "ServerInstanceType"
+        },
+        "AvailabilityZone": {
+          "Ref": "Zone"
+        },
+        "ImageId": "ami-08c40ec9ead489470",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${AWS::StackName}-FTP-server"
+            }
+          },
+          {
+            "Key": {
+              "Ref": "TagName"
+            },
+            "Value": {
+              "Ref": "TagValue"
+            }
+          }
+        ],
+        "NetworkInterfaces" : [
+          { "GroupSet" : [ { "Ref" : "vThunderSecurityGroupData" } ],
+            "AssociatePublicIpAddress": "true",
+            "DeviceIndex" : "0",
+            "SubnetId": { "Ref" : "DataSubnet2"}
+          }
+        ],
+        "KeyName" : { "Ref" : "KeyPairName" }
+      }
+    },
+
+
+
     "vThunder1" : {
       "Type" : "AWS::EC2::Instance",
       "DependsOn" : [ "MgmtNetworkInterfaceActive","ClientNetworkInterfaceActive","ServerNetworkInterfaceActive"],
@@ -890,4 +937,25 @@
         }
       }
     }
-  }}
+  ,
+
+  "vThunderSecretManager": {
+    "Type": "AWS::SecretsManager::Secret",
+    "Properties": {
+      "Name": {"Fn::Sub": "${AWS::StackName}-secret-manager"},
+      "Description": "This secret has a dynamically generated secret password.",
+      "GenerateSecretString": {
+        "SecretStringTemplate": "{\"username\":\"test-user\"}",
+        "GenerateStringKey": "password",
+        "PasswordLength": 30,
+        "ExcludeCharacters": "\"@/\\"
+      },
+      "Tags": [
+        {
+          "Key": "TagName",
+          "Value": "TagValue"
+        }
+      ]
+    }
+  }
+}}

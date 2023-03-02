@@ -5,6 +5,8 @@ import os.path
 from logger import logger
 import warnings
 import boto3
+import CHANGE_PASSWORD
+import getpass
 
 warnings.filterwarnings('ignore')
 
@@ -947,7 +949,7 @@ for i in slb_param_data["stackRegionDetails"]["value"]:
     count = 1
 site_interface_ids = get_interfaces_ids(site_list)
 # get site devices public ips
-print("Gathering public and private ip addresses for site devices")
+print("Gathering public and private ip addresses for site devices.")
 site_private_ips = []
 site_sec_ips = []
 site_public_ips, site_sec_pub_ips = get_vthunder_public_ip(site_interface_ids)
@@ -969,13 +971,54 @@ for i in range(len(slb_param_data["stackRegionDetails"]["value"])):
     j += 2
 
 servers_pvt_ips = get_server_pvt_ip(servers, regions)
+
+# vms_controller will store the public ip addresses of the management interfaces of sites
+controller_interface_ids = get_interfaces_ids(controller_list)
+vm_controller_ips, controller_sec_ip = get_vthunder_public_ip(controller_interface_ids)
 count = 1
-# configuration for site devices
+# change password for controller and site devices
+password_change = True
+password_count = 0
+vThNewPassword1 = ""
+print(
+    "--------------------------------------------------------------------------------------------------------------------")
+print("Primary conditions for password validation, user should provide the new password according to the "
+      "given combination: \n \nMinimum length of 9 characters \nMinimum lowercase character should be 1 \n"
+      "Minimum uppercase character should be 1 \nMinimum number should be 1 \nMinimum special character "
+      "should be 1 \nShould not include repeated characters \nShould not include more than 3 keyboard "
+      "consecutive characters.\n")
 for ith in range(len(site_list)):
     # Base URL of AXAPIs
     base_url = "https://{0}/axapi/v3".format(site_public_ips[ith][0])
     username = "admin"
-    authorization_token = get_auth_token(username, site_public_ips[ith][1], base_url)
+    # change password of vThunder
+    change_password = CHANGE_PASSWORD.VThunderPasswordHandler("admin")
+    while password_change:
+        vThNewPassword1 = getpass.getpass(prompt="Enter vThunder's new password:")
+        vThNewPassword2 = getpass.getpass(prompt="Confirm new password:")
+        if vThNewPassword1 == vThNewPassword2:
+            for i in range(len(site_public_ips)):
+                status = change_password.changed_admin_password(site_public_ips[i][0], site_public_ips[i][1],
+                                                                vThNewPassword1)
+                if status:
+                    password_count = password_count + 1
+                if password_count == len(site_public_ips):
+                    print("Password changed successfully for site devices.")
+            password_count = 0
+            for i in range(len(vm_controller_ips)):
+                status = change_password.changed_admin_password(vm_controller_ips[i][0], vm_controller_ips[i][1],
+                                                                vThNewPassword1)
+                if status:
+                    password_count = password_count + 1
+                if password_count == len(vm_controller_ips):
+                    print("Password changed successfully for controller devices.")
+                    password_change = False
+        else:
+            print("Password does not match.")
+            continue
+    print(
+        "--------------------------------------------------------------------------------------------------------------------")
+    authorization_token = get_auth_token(username, vThNewPassword1, base_url)
     configure_ethernets(base_url, authorization_token, site_private_ips[ith])
 
     configure_server(slb_param_data, base_url, authorization_token, count, site_public_ips[ith][1], servers_pvt_ips,
@@ -998,11 +1041,10 @@ for ith in range(len(site_list)):
 
     write_memory(base_url, authorization_token)
 
-# vms_controller will store the public ip addresses of the management interfaces of sites
-controller_interface_ids = get_interfaces_ids(controller_list)
-vm_controller_ips, controller_sec_ip = get_vthunder_public_ip(controller_interface_ids)
+# configure controller
 controller_pvt_ips = []
 controller_sec_pvt_ip = []
+
 for i in range(len(controller_list)):
     private_ips, sec_ips = get_pvt_ips(vm_controller_ips[i][1], controller_list[i].split("#")[1])
     controller_pvt_ips.append(private_ips)
@@ -1010,11 +1052,13 @@ for i in range(len(controller_list)):
 count = 1
 
 # configuration for controller devices
-print("configuring controller devices")
+print(
+    "--------------------------------------------------------------------------------------------------------------------")
+print("Configuring controller devices")
 for ith in range(len(vm_controller_ips)):
     base_url = "https://{0}/axapi/v3".format(vm_controller_ips[ith][0])
     username = "admin"
-    authorization_token = get_auth_token(username, vm_controller_ips[ith][1], base_url)
+    authorization_token = get_auth_token(username, vThNewPassword1, base_url)
     configure_ethernets(base_url, authorization_token, controller_pvt_ips[ith])
     configure_gslb_server(slb_param_data, base_url, authorization_token, count, vm_controller_ips[ith][1],
                           controller_sec_pvt_ip[count - 1])

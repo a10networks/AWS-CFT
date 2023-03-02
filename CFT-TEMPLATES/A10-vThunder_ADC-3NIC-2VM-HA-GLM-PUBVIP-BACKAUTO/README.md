@@ -34,6 +34,5 @@
 		User need to add region in this file and copy same to C:\Users\<USERNAME>\.aws  folder [For windows].
 		User need to add region in this file and copy same to ~/.aws  folder [For linux, macOS, Unix].
 	4. server.pem:
-		This is sample SSL certificate file. User can replace this certificate with his onw certificate. 
-	For more details please follow user guide:CFT_TMPL_3NIC_2VM_HA_GLM_PUBVIP_BACKAUTO_USER_GUIDE.docx
+		This is sample SSL certificate file. User can replace this certificate with his onw certificate.
 			

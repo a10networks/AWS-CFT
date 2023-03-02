@@ -34,6 +34,8 @@ import json
 import requests
 import boto3
 import base64
+import CHANGE_PASSWORD
+import getpass
 
 warnings.filterwarnings('ignore')
 
@@ -182,6 +184,78 @@ def get_pvt_ips(instance_id):
                 sec_pvt_ips.append(i["PrivateIpAddress"])
     sec_pvt_ips = [i for i in sec_pvt_ips if i not in pvt_ips]
     return pvt_ips, sec_pvt_ips
+
+
+def get_ftp_server(server_name):
+    """
+        Function to get ftp server details.
+        :param server_name: ftp server name
+        :return: server_public_ip, server_id
+        """
+    client = boto3.client('ec2')
+    response = client.describe_instances(
+        Filters=[
+            {
+                'Name': 'tag:Name',
+                'Values': [
+                    server_name
+                ]
+            }
+        ]
+    )
+    server_id = ""
+    server_ip = 0
+    for instances in response['Reservations']:
+        for instance in instances['Instances']:
+            if instance['State']['Name'] == "running":
+                server_id = instance["InstanceId"]
+                server_ip = instance["PublicIpAddress"]
+    return server_ip, server_id
+
+
+def aws_accesskey_upload(base_url, authorization_token, ftp_server_ip):
+    """
+    Function to configure AWS Access keys to vThunder
+    :param base_url: Base url of AXAPI
+    :param authorization_token: authorization_token
+    :param ftp_server_ip: public ip of ftp server
+    :return:
+    AXAPI:/admin/admin/aws-accesskey
+    """
+    url = "".join([base_url, "/admin/admin/aws-accesskey"])
+    file_url = "http://" + ftp_server_ip + "/aws_access_key.txt"
+    payload = {
+        "aws-accesskey": {
+            "import": 1,
+            "use-mgmt-port": 1,
+            "file-url": file_url
+        }
+    }
+    header = {
+        "Authorization": "".join(["A10 ", authorization_token]),
+        "accept": "application/json",
+        "Content-Type": "application/json"
+    }
+    try:
+        response = requests.post(
+            url, headers=header, data=json.dumps(payload), verify=False)
+        if response.status_code != 204 and response.status_code != 200:
+            logger.error("Failed to load aws access key")
+        else:
+            logger.info(response.text)
+            print("AWS access key uploaded to vThunder.")
+    except Exception as e:
+        logger.error('Error in uploading AWS access key: ', exc_info=True)
+
+
+def delete_ftp_server(ftp_server_id):
+    """
+    Function to delete FTP server.
+    :param ftp_server_id: FTP server instance id
+    """
+    ec2 = boto3.resource('ec2')
+    instance = ec2.Instance(ftp_server_id)
+    instance.terminate()
 
 
 def get_auth_token(username, password, base_url):
@@ -420,7 +494,7 @@ def ssl_upload(SLB_param_data, base_url, authorization_token):
     try:
         response = requests.post(
             url, headers=headers, data=payload, files=files, verify=False, timeout=timeout)
-        if response.status_code !=204:
+        if response.status_code != 204 and response.status_code != 200:
             logger.error("Failed to configure SSL certificate")
             print("Failed to configure SSL certificate")
         else:
@@ -840,6 +914,7 @@ if __name__ == "__main__":
             break
         else:
             print("Please select correct input.")
+    print("--------------------------------------------------------------------------------------------------------------------")
 
     # Validate and load parameter file data
     SLB_param_data = validate_load_json(upload_ssl_cert)
@@ -849,6 +924,10 @@ if __name__ == "__main__":
         server_pvt_ip = get_server_pvt_ip(server_name)
         mngmnt_interfaces_list = []
         count = 1
+        # get FTP server details
+
+        ftp_server_name = SLB_param_data["parameters"]["stackDetails"]["value"][0]["stackName"] + "-" + "FTP-server"
+        ftp_server_ip, ftp_server_id = get_ftp_server(ftp_server_name)
         # get list of management interface name of both vThunder devices
         for i in SLB_param_data["parameters"]["stackDetails"]["value"]:
             mngmnt_interfaces_list.append(i["stackName"] + "-" + "inst" + str(count) + "-mgmt-nic1")
@@ -865,12 +944,38 @@ if __name__ == "__main__":
             vThunder_pvt_ips.append([ip for ip in pvt_ips if ip.split(".")[2] == "2"][0])
             if len(sec_ips) > 1:
                 vThunder1_sec_ips.append(sec_ips)
+        password_change = True
+        print("Primary conditions for password validation, user should provide the new password according to the "
+              "given combination: \n \nMinimum length of 9 characters \nMinimum lowercase character should be 1 \n"
+              "Minimum uppercase character should be 1 \nMinimum number should be 1 \nMinimum special character "
+              "should be 1 \nShould not include repeated characters \nShould not include more than 3 keyboard "
+              "consecutive characters.\n")
         for vth in range(len(public_ip_list)):
-            print("Configuring vThunder with instance id {0}".format(public_ip_list[vth][1]))
             username = "admin"
             base_url = "https://{0}/axapi/v3".format(public_ip_list[vth][0])
-            authorization_token = get_auth_token(username, public_ip_list[vth][1], base_url)
+            # change password of vThunder
+            change_password = CHANGE_PASSWORD.VThunderPasswordHandler("admin")
+            while password_change:
+                vThNewPassword1 = getpass.getpass(prompt="Enter vThunder's new password:")
+                vThNewPassword2 = getpass.getpass(prompt="Confirm new password:")
+                if vThNewPassword1 == vThNewPassword2:
+                    for i in range(len(public_ip_list)):
+                        status = change_password.changed_admin_password(public_ip_list[i][0], public_ip_list[i][1],
+                                                                        vThNewPassword1)
+                        if status:
+                            count = count + 1
+                        if count == len(public_ip_list):
+                            print("Password changed successfully.")
+                            password_change = False
+                else:
+                    print("Password does not match.")
+                    continue
+            print("--------------------------------------------------------------------------------------------------------------------")
+            authorization_token = get_auth_token(username, vThNewPassword1, base_url)
+            print("Configuring vThunder with instance id {0}".format(public_ip_list[vth][1]))
             if authorization_token:
+                # upload aws access key to vThunder
+                aws_accesskey_upload(base_url, authorization_token, ftp_server_ip)
                 # SLB configuration
                 # 1. Invoke configure_ethernet
                 configure_ethernet(base_url, authorization_token)
@@ -920,3 +1025,5 @@ if __name__ == "__main__":
                 write_memory(base_url, authorization_token)
             else:
                 print("Fails to get authorization token.")
+        # delete ftp server
+        delete_ftp_server(ftp_server_id)

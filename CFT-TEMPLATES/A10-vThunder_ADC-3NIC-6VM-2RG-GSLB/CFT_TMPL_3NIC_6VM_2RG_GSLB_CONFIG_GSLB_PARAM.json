@@ -3,11 +3,11 @@
     "value" : [
  {
        "region": "us-east-1",
-       "stackName":"vth-stack1"
+       "stackName":"vth"
     },
         {
        "region": "us-east-2",
-            "stackName":"vth-stack1"
+            "stackName":"vth"
     }
         ]
    },

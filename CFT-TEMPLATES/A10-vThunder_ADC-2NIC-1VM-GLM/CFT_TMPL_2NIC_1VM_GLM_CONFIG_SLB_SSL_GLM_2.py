@@ -27,6 +27,8 @@ import json
 import requests
 import boto3
 import base64
+import CHANGE_PASSWORD
+import getpass
 
 warnings.filterwarnings('ignore')
 
@@ -512,7 +514,7 @@ def ssl_upload(SLB_param_data, base_url, authorization_token):
     try:
         response = requests.post(
             url, headers=headers, data=payload, files=files, verify=False, timeout=timeout)
-        if response.status_code != 204:
+        if response.status_code != 204 and response.status_code != 200:
             logger.error("Failed to configure SSL certificate")
         else:
             logger.info("SSL Configured.")
@@ -590,6 +592,7 @@ if __name__ == "__main__":
             break
         else:
             print("Please select correct input.")
+    print("--------------------------------------------------------------------------------------------------------------------")
 
     # Validate and load parameter file data
     SLB_param_data = validate_load_json(upload_ssl_cert)
@@ -608,7 +611,33 @@ if __name__ == "__main__":
         username = "admin"
         # Base URL of AXAPIs
         base_url = "https://{0}/axapi/v3".format(public_ip_list[0][0])
-        authorization_token = get_auth_token(username, public_ip_list[0][1], base_url)
+        # change vThunder's password
+        change_password = CHANGE_PASSWORD.VThunderPasswordHandler("admin")
+        status = True
+        print("Primary conditions for password validation, user should provide the new password according to the "
+              "given combination: \n \nMinimum length of 9 characters \nMinimum lowercase character should be 1 \n"
+              "Minimum uppercase character should be 1 \nMinimum number should be 1 \nMinimum special character "
+              "should be 1 \nShould not include repeated characters \nShould not include more than 3 keyboard "
+              "consecutive characters.\n")
+        while status:
+            vThNewPassword1 = getpass.getpass(prompt="Enter vThunder's new password:")
+            vThNewPassword2 = getpass.getpass(prompt="Confirm new password:")
+            if vThNewPassword1 == vThNewPassword2:
+                count = 0
+                for i in range(len(public_ip_list)):
+                    status = change_password.changed_admin_password(public_ip_list[i][0], public_ip_list[i][1],
+                                                                    vThNewPassword1)
+                    if status:
+                        count = count + 1
+                    if count == len(public_ip_list):
+                        status = False
+            else:
+                print("Password does not match.")
+                continue
+
+        print(
+            "--------------------------------------------------------------------------------------------------------------------")
+        authorization_token = get_auth_token(username, vThNewPassword1, base_url)
         if authorization_token is not None:
             # 1. Invoke configure_ethernet
             configure_ethernet(base_url, authorization_token)
