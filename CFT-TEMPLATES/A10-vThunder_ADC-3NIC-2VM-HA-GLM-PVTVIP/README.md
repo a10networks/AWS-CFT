@@ -18,7 +18,7 @@
 	 
 # requirements.txt
      This is list of additional packages list need to install to run configuration script. 
-        
+  
 # ADDITIONAL FILES
 	1. logger.py:
 		This file is used to log the error and information messages to log file which will generate on execution of CFT_TMPL_3NIC_2VM_HA_GLM_PVTVIP_CONFIG_SLB_SSL_HA_GLM_2.py
@@ -30,5 +30,6 @@
 		User need to add region in this file and copy same to ~/.aws  folder [For linux, macOS, Unix].
 	4. server.pem:
 		This is sample SSL certificate file. User can replace this certificate with his onw certificate. 
-	For more details please follow user guide:CFT_TMPL_3NIC_2VM_HA_GLM_PVTVIP_USER_GUIDE.docx
-			
+	5. CHANGE_PASSWORD.py:
+		This file is used to change the password of deployed vThunder.
+		

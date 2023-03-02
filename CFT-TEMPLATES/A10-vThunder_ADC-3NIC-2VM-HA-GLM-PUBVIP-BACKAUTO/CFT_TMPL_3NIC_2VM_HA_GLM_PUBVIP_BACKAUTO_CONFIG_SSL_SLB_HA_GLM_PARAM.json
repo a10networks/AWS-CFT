@@ -3,7 +3,7 @@
     "stackDetails": {
       "value": [
         {
-          "stackName": "vth2"
+          "stackName": "vth"
         }
       ]},
       "desiredCapacity": 1,
@@ -87,10 +87,10 @@
         "certificationType": "pem"
       },
       "user_name": {
-        "value": "XXXX@a10networks.com"
+        "value": "XXXXXX@a10networks.com"
       },
       "user_password": {
-        "value": "XXXXXXXXXXXXX"
+        "value": "XXXXXXXXXXX"
       },
       "entitlement_token": {
         "value": "XXXXXXXXXXXX"

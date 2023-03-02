@@ -90,13 +90,13 @@
           "certificationType": "pem"
     },
     "user_name": {
-        "value": "xxxxxxxx@a10networks.com"
+        "value": "XXXXX@a10networks.com"
       },
       "user_password": {
-        "value": "xxxxxxxx"
+        "value": "XXXXXXXXXXXX"
       },
       "entitlement_token": {
-        "value": "xxxxxxxx"
+        "value": "XXXXXXXXXXXX"
       }
   }
 }

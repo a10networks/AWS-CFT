@@ -29,5 +29,7 @@
 		User need to add region in this file and copy same to ~/.aws  folder [For linux, macOS, Unix].
 	4. server.pem:
 		This is sample SSL certificate file. User can replace this certificate with his onw certificate. 
-	For more details please follow user guide: CFT_TMPL_2NIC_1VM_USER_GUIDE.docx
+	5. CHANGE_PASSWORD.py:
+		This file is used to change the password of deployed vThunder.
+	
 			
