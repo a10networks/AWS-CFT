@@ -27,6 +27,11 @@ For more detailed documentation, refer to the offline documentation available wi
 
 - https://documentation.a10networks.com/IaC/AWS_CFT/1_1_0/html/AWS_TEMP_Responsive_HTML5/Default.htm
 
+## Change Password Scripts
+Run any of following script to change password of thunder.
+- Powershell : \scripts\Change_Password_Setup.ps1
+- Python : \scripts\Change_Password_Setup.py
+
 ## A10’s vThunder Support Information
 Below listed A10’s vThunder vADC (Application Delivery Controller) are tested and supported.
 - 64-bit Advanced Core OS (ACOS) version 5.2.1-p5, build 114.
