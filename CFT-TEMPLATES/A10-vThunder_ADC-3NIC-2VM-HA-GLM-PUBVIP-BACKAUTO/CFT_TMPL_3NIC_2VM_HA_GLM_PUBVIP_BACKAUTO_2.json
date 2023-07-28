@@ -3,7 +3,7 @@
   "Description":"An AWS CFT template for 3 NIC, 2 Virtual Machines, Server Load Balancer, A10 Global License Manager Integration, High Availability, CA SSL Certificates.",
   "Parameters":{
     "Zone":{
-      "Description":"Availability zone name where resources get created",
+      "Description":"AWS offers a range of options for managing availability and resiliency for your applications. Architect your solution to use replicated VMs in Availability Zones to protect your apps and data from datacenter outages and maintenance events.",
       "Type":"AWS::EC2::AvailabilityZone::Name",
       "MinLength":"1",
       "MaxLength":"64",
@@ -11,15 +11,31 @@
       "ConstraintDescription":"supports only alphanumeric characters, spaces, dashes and underscores"
     },
     "KeyPairName":{
-      "Description":"vThunder and linux server Keypair name for SSH access to the instances",
+      "Description":"A key pair,consisting of a public key and a private key, is a set of security credentials that you use to prove your identity when connecting to an Amazon EC2 instance.",
       "Type":"AWS::EC2::KeyPair::KeyName",
       "MinLength":"1",
       "MaxLength":"64",
       "AllowedPattern":"[-_ a-zA-Z0-9]*",
       "ConstraintDescription":"supports only alphanumeric characters, spaces, dashes and underscores"
     },
-    "vThunderInstance" : {
-      "Description"   : "vThunder instance type",
+    "AMIIDThunder":{
+      "Description":"Choose from available ami id for a10 thunder instance. A10 Thunder ADC for Advanced Load Balancing - BYOL is set as a default ami id for us-east-1 region. Find more type of thunder images available with different capacity under respective regions. Go to aws -> ec2 -> launch instance -> Application and OS Images (Amazon Machine Image) -> search for acos vthunder -> AWS marketplace amis -> select the relevant thunder image -> click on continue -> copy ami id.",
+      "Type": "String",
+      "MinLength":"1",
+      "MaxLength":"64",
+      "AllowedPattern":"[-_ a-zA-Z0-9]*",
+      "Default"       : "ami-0c6f62bbb84e4dea0"
+    },
+    "AMIIDLinux":{
+      "Description":"Choose from available ami id for linux instance. Ubuntu Server 22.04 LTS (HVM), SSD Volume Type is set as a default ami id for us-east-1 region. Find more type of linux images available under different regions. Go to aws -> ec2 -> launch instance -> Application and OS Images (Amazon Machine Image) -> search for linux/ubuntu -> AWS marketplace amis -> select the relevant linux/ubuntu image -> copy ami id.",
+      "Type": "String",
+      "MinLength":"1",
+      "MaxLength":"64",
+      "AllowedPattern":"[-_ a-zA-Z0-9]*",
+      "Default"       : "ami-053b0d53c279acc90"
+    },
+    "InstanceTypeThunder" : {
+      "Description"   : "Choose from available instance/compute type supported for vThunder. Default instance type is m4.xlarge which contains 4 vCPU and 64 GiB memory. vThunder requires minimun 4 vCPU and 32 GiB memory, for more information check AWS marketplace product pricing section. In case required instance type is not available in the list, it can be added in the script. Go to aws -> ec2 -> launch instance -> Find and copy relevant instance type.",
       "Type"          : "String",
       "Default"       : "m4.xlarge",
 	  "AllowedValues" : ["c4.xlarge",
@@ -85,15 +101,8 @@
       ],
        "ConstraintDescription" : "must be a valid vThunder instance type."
     },
-    "InstanceTypeServer" : {
-      "Description"   : "Server instance type",
-      "Type"          : "String",
-      "Default"       : "t2.micro",
-      "AllowedValues" : [ "t2.micro","m4.xlarge", "m4.2xlarge", "m4.4xlarge", "m3.2xlarge", "c4.xlarge", "c4.2xlarge", "c4.4xlarge", "c3.xlarge", "c3.2xlarge", "c3.4xlarge", "c3.8xlarge", "p2.8xlarge", "r3.8xlarge", "d2.xlarge", "d2.2xlarge", "i2.8xlarge" ],
-      "ConstraintDescription" : "must be a valid server type."
-    },
     "Tenancy" : {
-      "Description" : "Tenant in which EC2 instance to be launched",
+      "Description" : "Tenancy defines how EC2 instances are distributed across physical hardware and affects pricing. Specifies if the Amazon EC2 instance is hosted on shared or single-tenant hardware.",
       "Type"        : "String",
       "MinLength"   : "7",
       "MaxLength"   : "9",
@@ -102,7 +111,7 @@
       "ConstraintDescription" : "must be default or dedicated"
     },
     "CidrVPC" : {
-      "Description" : "CIDR of the VPC",
+      "Description" : "CIDR of the VPC.",
       "Type"        : "String",
       "MinLength"   : "9",
       "MaxLength"   : "18",
@@ -111,7 +120,7 @@
       "ConstraintDescription" : "must be a valid IP CIDR range of the form x.x.x.x/x."
     },
     "CidrMgmtSubnet" : {
-      "Description" : "CIDR of the Management Subnet",
+      "Description" : "CIDR of the Management Subnet.",
       "Type"        : "String",
       "MinLength"   : "9",
       "MaxLength"   : "18",
@@ -120,7 +129,7 @@
       "ConstraintDescription" : "must be a valid IP CIDR range of the form x.x.x.x/x."
     },
     "CidrDataSubnet1" : {
-      "Description" : "CIDR of the data Subnet1",
+      "Description" : "CIDR of the data Subnet1.",
       "Type"        : "String",
       "MinLength"   : "9",
       "MaxLength"   : "18",
@@ -129,7 +138,7 @@
       "ConstraintDescription" : "must be a valid IP CIDR range of the form x.x.x.x/x."
     },
     "CidrDataSubnet2" : {
-      "Description" : "CIDR of the data Subnet2",
+      "Description" : "CIDR of the data Subnet2.",
       "Type"        : "String",
       "MinLength"   : "9",
       "MaxLength"   : "18",
@@ -138,21 +147,21 @@
       "ConstraintDescription" : "must be a valid IP CIDR range of the form x.x.x.x/x."
     },
     "PrimaryIp" : {
-      "Description" : "Client interface primary Ip",
+      "Description" : "Client interface primary IP.",
       "Type"        : "String",
       "Default"     : "10.0.2.117",
       "AllowedPattern" : "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})",
       "ConstraintDescription" : "Must be a valid IP address."
     },
     "VIP" : {
-      "Description" : "Client interface secondary Ip",
+      "Description" : "Client interface secondary IP.",
       "Type"        : "String",
       "Default"     : "10.0.2.121",
       "AllowedPattern" : "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})",
       "ConstraintDescription" : "Must be a valid IP address."
     },
-	 "ServerInstanceType" : {
-      "Description"   : "Server instance type",
+	 "InstanceTypeLinux" : {
+       "Description"   : "Choose from available instance/compute type supported for Linux will be used for configuring web server to test traffic. Default instance type is t2.micro which contains 1 vCPU and 1 GiB memory. In case required instance type is not available in the list, it can be added in the script. Go to aws -> ec2 -> launch instance -> Find and copy relevant instance type.",
       "Type"          : "String",
       "Default"       : "t2.micro",
       "AllowedValues" : [ "t2.micro","m4.xlarge", "m4.2xlarge", "m4.4xlarge", "m3.2xlarge", "c4.xlarge", "c4.2xlarge", "c4.4xlarge", "c3.xlarge", "c3.2xlarge", "c3.4xlarge", "c3.8xlarge","p2.8xlarge", "r3.8xlarge", "d2.xlarge", "d2.2xlarge", "i2.8xlarge" ],
@@ -160,30 +169,32 @@
     },
     "TagName" : {
       "Type" : "String",
-      "Default" : "name"
+      "Default" : "name",
+      "Description": "Custom tag key which will be added to all resources created via CFT. Tags are used to track the cost of resources in AWS Cost Explorer."
     },
     "TagValue" : {
       "Type" : "String",
-      "Default" : "a10-vthunder-adc"
+      "Default" : "a10-vthunder-adc",
+      "Description": "Custom tag key which will be added to all resources created via CFT. Tags are used to track the cost of resources in AWS Cost Explorer."
     },
     "LambdaIAMRoleARN": {
-      "Description": "Existing lambda function IAM Role ARN",
+      "Description": "Existing lambda function IAM Role ARN.",
       "Type": "String"
-    },
-    "AutoScaleInstancesImageId":{
-      "Type" : "String",
-      "Description":"Ubuntu 22.04 LTS image ami for server instances",
-      "Default" : "ami-08c40ec9ead489470"
     },
     "CPUPolicyTargetValue": {
       "Default": 80,
-      "Description": "Auto scale group target CPU utilization",
+      "Description": "Auto scale group target CPU utilization.",
       "Type": "String"
     },
     "LaunchTemplateVersionNumber": {
       "Default": 1,
       "Type": "String",
-      "Description": "Auto scale group launch template version"
+      "Description": "Auto scale group launch template version."
+    },
+    "S3BucketName": {
+      "Default": "3nic-2vm-ha-glm-pubvip-backauto-bucket",
+      "Type": "String",
+      "Description": "Name of the S3 bucket where the lambda fuction code will be updated."
     },
     "AWSKeysSecretMangerName": {
       "Type" : "String",
@@ -252,22 +263,6 @@
       "z1d.2xlarge":  { "Arch" : "HVM64"  },
       "z1d.3xlarge":  { "Arch" : "HVM64"  },
       "z1d.6xlarge":  { "Arch" : "HVM64"  }
-    },
-    "RegionArch2AMI" : {
-      "us-east-1"      : {"HVM64" : "ami-0cdd0ebc526d641a7"},
-      "us-east-2"      : {"HVM64" : "ami-0f0a287c00e85edd9"},
-      "us-west-1"      : {"HVM64" : "ami-0ac871cc29bdc583a"},
-      "us-west-2"      : {"HVM64" : "ami-010ec8cef3a23dedf"},
-      "ca-central-1"   : {"HVM64" : "ami-06c8ff8970cdffcfd"},
-      "eu-central-1"   : {"HVM64" : "ami-02441ec11bfbc7dc6"},
-      "eu-west-1"      : {"HVM64" : "ami-024576f52a86acf4a"},
-      "eu-west-2"      : {"HVM64" : "ami-05ef5727b7807e557"},
-      "ap-southeast-1" : {"HVM64" : "ami-030841e75952366b3"},
-      "ap-southeast-2" : {"HVM64" : "ami-0c50123a476a2e471"},
-      "ap-south-1"     : {"HVM64" : "ami-018222810bb5a1146"},
-      "ap-northeast-1" : {"HVM64" : "ami-0bacf1dad17b9bab9"},
-      "ap-northeast-2" : {"HVM64" : "ami-01830d428532ea4a5"},
-      "sa-east-1"      : {"HVM64" : "ami-02d467bb2f881fa6a"}
     }
   },
   "Resources": {
@@ -287,7 +282,7 @@
         "Environment":{"Variables" : {"Region":{ "Ref" : "AWS::Region" },"vThunder1MgmtNICID":{"Ref":"MgmtNetworkInterfaceActive"}, "vThunder2MgmtNICID":{"Ref":"MgmtNetworkInterfaceStandBy"}, "AWSSecretManagerName": {"Ref": "AWSKeysSecretMangerName"}}},
         "MemorySize":512,
         "Code": {
-          "S3Bucket":"3nic-2vm-ha-glm-pubvip-backauto-bucket",
+          "S3Bucket":{ "Ref" :  "S3BucketName" },
           "S3Key": "CFT_TMPL_3NIC_2VM_HA_GLM_PUBVIP_BACKAUTO_SERVER_PACKAGE.zip"
         },
         "Runtime": "python3.8",
@@ -595,12 +590,12 @@
       "Type" : "AWS::EC2::Instance",
       "Properties" : {
         "InstanceType": {
-          "Ref": "ServerInstanceType"
+          "Ref": "InstanceTypeLinux"
         },
         "AvailabilityZone": {
           "Ref": "Zone"
         },
-        "ImageId": "ami-08c40ec9ead489470",
+        "ImageId":{"Ref" : "AMIIDLinux"},
         "Tags": [
           {
             "Key": "Name",
@@ -634,12 +629,9 @@
       "Type" : "AWS::EC2::Instance",
       "DependsOn" : [ "MgmtNetworkInterfaceActive","ClientNetworkInterfaceActive","ServerNetworkInterfaceActive"],
       "Properties" : {
-        "InstanceType" : { "Ref" : "vThunderInstance" },
+        "InstanceType" : { "Ref" : "InstanceTypeThunder" },
         "AvailabilityZone" : { "Ref" : "Zone" },
-        "ImageId" : {
-          "Fn::FindInMap" : [ "RegionArch2AMI", { "Ref" : "AWS::Region" }, {
-            "Fn::FindInMap" : [ "InstanceType2Arch", { "Ref" : "vThunderInstance" }, "Arch" ] } ]
-        },
+        "ImageId" : {"Ref" : "AMIIDThunder"},
         "Tags" : [
           {"Key" : "Name", "Value" :  {"Fn::Sub":"${AWS::StackName}-inst1"}},
           {"Key" : {
@@ -670,12 +662,9 @@
       "Type" : "AWS::EC2::Instance",
       "DependsOn" : [ "MgmtNetworkInterfaceStandBy","ClientNetworkInterfaceStandBy","ServerNetworkInterfaceStandBy"],
       "Properties" : {
-        "InstanceType" : { "Ref" : "vThunderInstance" },
+        "InstanceType" : { "Ref" : "InstanceTypeThunder" },
         "AvailabilityZone" : { "Ref" : "Zone" },
-        "ImageId" : {
-          "Fn::FindInMap" : [ "RegionArch2AMI", { "Ref" : "AWS::Region" }, {
-            "Fn::FindInMap" : [ "InstanceType2Arch", { "Ref" : "vThunderInstance" }, "Arch" ] } ]
-        },
+        "ImageId" : {"Ref" : "AMIIDThunder"},
         "Tags" : [
           {"Key" : "Name", "Value" :  {"Fn::Sub":"${AWS::StackName}-inst2"}},
           {"Key" : {
@@ -864,10 +853,10 @@
             "Tenancy": "default"
           },
           "ImageId": {
-            "Ref": "AutoScaleInstancesImageId"
+          "Ref" : "AMIIDLinux"
           },
           "InstanceType": {
-            "Ref": "InstanceTypeServer"
+            "Ref": "InstanceTypeLinux"
           },
           "KeyName": {
             "Ref": "KeyPairName"
