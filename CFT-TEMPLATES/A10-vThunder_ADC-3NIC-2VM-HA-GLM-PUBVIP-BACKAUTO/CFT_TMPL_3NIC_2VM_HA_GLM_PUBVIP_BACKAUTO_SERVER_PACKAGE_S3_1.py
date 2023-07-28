@@ -4,7 +4,7 @@ import boto3
 from botocore.exceptions import ClientError
 
 
-def create_bucket(bucket_name):
+def create_bucket(bucket_name, region):
     """Create an S3 bucket
     :param bucket_name: Bucket to create
     :return: True if bucket created, else False
@@ -13,8 +13,10 @@ def create_bucket(bucket_name):
     # Create bucket
     try:
         s3_client = boto3.client('s3')
-        s3_client.create_bucket(Bucket=bucket_name)
-
+        if region == 'us-east-1':
+            s3_client.create_bucket(Bucket=bucket_name)
+        else:
+            s3_client.create_bucket(Bucket=bucket_name, CreateBucketConfiguration={'LocationConstraint': region})
     except ClientError as e:
         logging.error(e)
         return False
@@ -44,9 +46,12 @@ def upload_file(file, bucket_name, object_name=None):
 
 
 if __name__ == "__main__":
-    bucket_name = "3nic-2vm-ha-glm-pubvip-backauto-bucket"
+    bucket_name = input("Enter bucket name: ")
+    region = input("Enter region: ")
     python_file = 'CFT_TMPL_3NIC_2VM_HA_GLM_PUBVIP_BACKAUTO_SERVER_PACKAGE.zip'
-    status = create_bucket(bucket_name)
+    if not region.strip() or not bucket_name.strip():
+        raise("Please provide the region value or bucket name")
+    status = create_bucket(bucket_name.lower(), region.lower())
     if status:
         upload_status = upload_file(python_file, bucket_name, object_name=None)
         if upload_status:
