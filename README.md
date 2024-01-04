@@ -9,7 +9,7 @@ This template contains several configurations of Thunder which can be applied vi
 
 ## Support Matrix
 
-|        ACOS ADC         | [AWS 1.0.0](https://gitlab.a10networks.com/dev-shared-infra/a10-aws-cft-internal/-/tree/release/v1.0.0) | [AWS 1.1.0](https://gitlab.a10networks.com/dev-shared-infra/a10-aws-cft-internal/-/tree/release/v1.1.0) | [AWS 1.2.0](https://gitlab.a10networks.com/dev-shared-infra/a10-aws-cft-internal/-/tree/release/v2.0.0) |
+|        ACOS ADC         | [CFT 1.0.0](https://github.com/a10networks/AWS-CFT/tree/release/v1.0.0) | [CFT 1.1.0](https://github.com/a10networks/AWS-CFT/tree/release/v1.1.0) | [CFT 1.2.0](https://github.com/a10networks/AWS-CFT/tree/release/v1.2.0) |
 |:-----------------------:|:------------------------------------------------------------------------------------------:|:------------------------------------------------------------------------------------------:|:------------------------------------------------------------------------------------------:|
 |  `ACOS version 6.0.3`   |                                            `No`                                            |                                           `No`                                            |                                           `Yes`                                            |
 | `ACOS version 6.0.2` |                                           `No`                                            |                                           `No`                                            |                                            `Yes`                                            |
