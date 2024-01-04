@@ -1,0 +1,64 @@
+
+{
+  "AWSTemplateFormatVersion":"2010-09-09",
+  "Description":"An AWS CFT template for creating 3 Elastic IPs in a region.",
+  "Parameters":{
+    "CustomTagName" : {
+      "Type" : "String",
+      "Default" : "name",
+      "Description": "Specify the custom tag name. Custom tag key which will be added to all resources created via CFT. Tags are used to track the cost of resources in AWS Cost Explorer."
+    },
+    "CustomTagValue" : {
+      "Type" : "String",
+      "Default" : "a10-vthunder-adc",
+      "Description": "Specify the custom tag value. Custom tag key which will be added to all resources created via CFT. Tags are used to track the cost of resources in AWS Cost Explorer."
+    }
+  },
+
+  "Resources": {
+    "vThunderEIPInstance1" : {
+      "Type" : "AWS::EC2::EIP",
+      "Properties" : {
+        "Tags" : [
+          { "Key" : "Name", "Value" : {"Fn::Sub":"${AWS::StackName}-eip-1" }},
+          {"Key" : {
+            "Ref" : "CustomTagName"
+          },
+            "Value": {
+              "Ref" : "CustomTagValue"
+            }
+          }
+        ]
+      }
+    },
+    "vThunderEIPInstance2" : {
+      "Type" : "AWS::EC2::EIP",
+      "Properties" : {
+        "Tags" : [
+          { "Key" : "Name", "Value" : {"Fn::Sub":"${AWS::StackName}-eip-2" }},
+          {"Key" : {
+            "Ref" : "CustomTagName"
+          },
+            "Value": {
+              "Ref" : "CustomTagValue"
+            }
+          }
+        ]
+      }
+    },
+    "vThunderEIPInstance3" : {
+      "Type" : "AWS::EC2::EIP",
+      "Properties" : {
+        "Tags" : [
+          { "Key" : "Name", "Value" : {"Fn::Sub":"${AWS::StackName}-eip-3" }},
+          {"Key" : {
+            "Ref" : "CustomTagName"
+          },
+            "Value": {
+              "Ref" : "CustomTagValue"
+            }
+          }
+        ]
+      }
+    }
+  }}

@@ -1,0 +1,284 @@
+{
+  "AWSTemplateFormatVersion":"2010-09-09",
+  "Description":"An AWS CFT template for creating a VPC and three subnets attached with it.",
+
+  "Parameters":{
+    "Zone":{
+      "Type":"AWS::EC2::AvailabilityZone::Name",
+      "MinLength":"1",
+      "MaxLength":"64",
+      "AllowedPattern":"[-_ a-zA-Z0-9]*",
+      "ConstraintDescription":"supports only alphanumeric characters, spaces, dashes and underscores",
+      "Description":"Choose from the existing availability zones. AWS offers a range of options for managing availability and resiliency for your applications. Architect your solution to use replicated VMs in Availability Zones to protect your apps and data from datacenter outages and maintenance events."
+    },
+    "CidrVPC" : {
+      "Type"        : "String",
+      "MinLength"   : "9",
+      "MaxLength"   : "18",
+      "Default"     : "10.0.0.0/16",
+      "AllowedPattern" : "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+      "ConstraintDescription" : "must be a valid IP CIDR range of the form x.x.x.x/x.",
+      "Description" : "Specify the CIDR of the VPC."
+    },
+
+    "CidrMgmtSubnet" : {
+      "Type"        : "String",
+      "MinLength"   : "9",
+      "MaxLength"   : "18",
+      "Default"     : "10.0.1.0/24",
+      "AllowedPattern" : "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+      "ConstraintDescription" : "must be a valid IP CIDR range of the form x.x.x.x/x.",
+      "Description" : "Specify the CIDR of the Management Subnet."
+    },
+    "CidrDataSubnetIn" : {
+      "Type"        : "String",
+      "MinLength"   : "9",
+      "MaxLength"   : "18",
+      "Default"     : "10.0.2.0/24",
+      "AllowedPattern" : "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+      "ConstraintDescription" : "must be a valid IP CIDR range of the form x.x.x.x/x.",
+      "Description" : "Specify the CIDR of the data in Subnet."
+    },
+    "CidrDataSubnetOut" : {
+      "Type"        : "String",
+      "MinLength"   : "9",
+      "MaxLength"   : "18",
+      "Default"     : "10.0.3.0/24",
+      "AllowedPattern" : "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+      "ConstraintDescription" : "must be a valid IP CIDR range of the form x.x.x.x/x.",
+      "Description" : "Specify the CIDR of the data out Subnet."
+    },
+    
+    "CustomTagName" : {
+      "Type" : "String",
+      "Default" : "name",
+      "Description": "Specify the custom tag name.Custom tag key which will be added to all resources created via CFT.Tags are used to track the cost of resources in AWS Cost Explorer."
+    },
+    "CustomTagValue" : {
+      "Type" : "String",
+      "Default" : "a10-vthunder-adc",
+      "Description": "Specify the custom tag value.Custom tag key which will be added to all resources created via CFT.Tags are used to track the cost of resources in AWS Cost Explorer."
+    }},
+  "Resources":{
+    "vThunderVPC": {
+      "Type": "AWS::EC2::VPC",
+      "Properties": {
+        "CidrBlock": {
+          "Ref" : "CidrVPC"
+        },
+        "Tags" : [
+          {"Key" : {
+            "Ref" : "CustomTagName"
+          },
+            "Value": {
+              "Ref" : "CustomTagValue"
+            }
+          },
+          {"Key" : "Name", "Value": {"Fn::Sub":"${AWS::StackName}-vpc"}}
+        ]
+      }
+    },
+    "MgmtSubnet": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "VpcId": {
+          "Ref": "vThunderVPC"
+        },
+        "AvailabilityZone" :{ "Ref" : "Zone" },
+        "CidrBlock":  {
+          "Ref" : "CidrMgmtSubnet"
+        },
+        "Tags": [
+          {"Key" : {
+            "Ref" : "CustomTagName"
+          },
+            "Value": {
+              "Ref" : "CustomTagValue"
+            }
+          },
+          {"Key" : "Name", "Value": {"Fn::Sub":"${AWS::StackName}-vpc-mgmt-subnet1"}}
+        ]
+      }
+    },
+    "DataSubnet1": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "VpcId": {
+          "Ref": "vThunderVPC"
+        },
+        "AvailabilityZone" :{ "Ref" : "Zone" },
+        "CidrBlock": {
+          "Ref" : "CidrDataSubnetIn"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {"Fn::Sub":"${AWS::StackName}-vpc-data-sub1"}
+          },
+          {"Key" : {
+            "Ref" : "CustomTagName"
+          },
+            "Value": {
+              "Ref" : "CustomTagValue"
+            }
+          }
+        ]
+      }
+    },
+    "DataSubnet2": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "VpcId": {
+          "Ref": "vThunderVPC"
+        },
+        "AvailabilityZone" :{ "Ref" : "Zone" },
+        "CidrBlock": {
+          "Ref" : "CidrDataSubnetOut"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {"Fn::Sub":"${AWS::StackName}-vpc-data-sub2"}
+          },
+          {"Key" : {
+            "Ref" : "CustomTagName"
+          },
+            "Value": {
+              "Ref" : "CustomTagValue"
+            }
+          }
+        ]
+      }
+    },
+    "vThunderInternetGateway" : {
+      "Type" : "AWS::EC2::InternetGateway",
+      "Properties" : {
+        "Tags" : [
+          { "Key" : "name", "Value" :  {"Fn::Sub":"${AWS::StackName}-internet-gateway"}},
+          {"Key" : {
+            "Ref" : "CustomTagName"
+          },
+            "Value": {
+              "Ref" : "CustomTagValue"
+            }
+          }
+        ] }
+
+    },
+
+    "AttachGatewayvThunder" : {
+      "Type" : "AWS::EC2::VPCGatewayAttachment",
+      "Properties" : {
+        "VpcId" : { "Ref" : "vThunderVPC" },
+        "InternetGatewayId" : { "Ref" : "vThunderInternetGateway" }
+
+
+      }
+    },
+    "PublicRouteTablevThunderVPC" : {
+      "Type" : "AWS::EC2::RouteTable",
+      "Properties" : {
+        "VpcId" : { "Ref" : "vThunderVPC" },
+        "Tags" : [
+          { "Key" : "Name", "Value" :  {"Fn::Sub":"${AWS::StackName}-public-route-table" }},
+          {"Key" : {
+            "Ref" : "CustomTagName"
+          },
+            "Value": {
+              "Ref" : "CustomTagValue"
+            }
+          }
+        ]
+
+      }},
+    "PublicRoutevThunder" : {
+      "Type" : "AWS::EC2::Route",
+      "DependsOn" : "AttachGatewayvThunder",
+      "Properties" : {
+        "RouteTableId" : { "Ref" : "PublicRouteTablevThunderVPC" },
+        "DestinationCidrBlock" : "0.0.0.0/0",
+        "GatewayId" : { "Ref" : "vThunderInternetGateway" }
+      }
+    },
+    "PublicSubnetRouteTablevThunderAssociationMgmt" : {
+      "Type" : "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties" : {
+        "SubnetId" : { "Ref" : "MgmtSubnet" },
+        "RouteTableId" : { "Ref" : "PublicRouteTablevThunderVPC" }
+      }
+    },
+    "PublicSubnetRouteTablevThunderAssociationData1" : {
+      "Type" : "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties" : {
+        "SubnetId" : { "Ref" : "DataSubnet1" },
+        "RouteTableId" : { "Ref" : "PublicRouteTablevThunderVPC" }
+      }
+    },
+    "PublicSubnetRouteTablevThunderAssociationData2" : {
+      "Type" : "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties" : {
+        "SubnetId" : { "Ref" : "DataSubnet2" },
+        "RouteTableId" : { "Ref" : "PublicRouteTablevThunderVPC" }
+      }
+    },
+
+    "vThunderSecurityGroupMgmt" : {
+      "Type" : "AWS::EC2::SecurityGroup",
+      "Properties" : {
+        "GroupDescription" : "Enable HTTP, HTTPS, ICMP and SSH access",
+        "VpcId" : { "Ref" : "vThunderVPC" },
+        "SecurityGroupIngress" : [
+          { "IpProtocol" : "tcp", "FromPort" : "80", "ToPort" : "80", "CidrIp" : "0.0.0.0/0" },
+          { "IpProtocol" : "tcp", "FromPort" : "443", "ToPort" : "443", "CidrIp" : "0.0.0.0/0" },
+          { "IpProtocol" : "tcp", "FromPort" : "22", "ToPort" : "22", "CidrIp" : "0.0.0.0/0" }   ,
+          { "IpProtocol" : "icmp", "FromPort" : "-1", "ToPort" : "-1", "CidrIp" : "0.0.0.0/0" },
+          { "IpProtocol" : "udp", "FromPort" : "161", "ToPort" : "161", "CidrIp" : "0.0.0.0/0" },
+          { "IpProtocol" : "tcp", "FromPort" : "123", "ToPort" : "123", "CidrIp" : "0.0.0.0/0" },
+          { "IpProtocol" : "tcp", "FromPort" : "4149", "ToPort" : "4149", "CidrIp" : "0.0.0.0/0" }
+        ],
+        "SecurityGroupEgress" : [
+          { "IpProtocol" : "-1", "CidrIp" : "0.0.0.0/0" }
+        ],
+        "Tags" : [
+          { "Key" : "Name", "Value" : {"Fn::Sub":"${AWS::StackName}-sg-mgmt"} },
+          {"Key" : {
+            "Ref" : "CustomTagName"
+          },
+            "Value": {
+              "Ref" : "CustomTagValue"
+            }
+          }
+        ]
+      }
+    },
+    "vThunderSecurityGroupData" : {
+      "Type" : "AWS::EC2::SecurityGroup",
+      "Properties" : {
+        "GroupDescription" : "Enable HTTP and HTTPS, SSH and ICMP access",
+        "VpcId" : { "Ref" : "vThunderVPC" },
+        "SecurityGroupIngress" : [
+          { "IpProtocol" : "tcp", "FromPort" : "80", "ToPort" : "80", "CidrIp" : "0.0.0.0/0" },
+          { "IpProtocol" : "tcp", "FromPort" : "443", "ToPort" : "443", "CidrIp" : "0.0.0.0/0" },
+          { "IpProtocol" : "icmp", "FromPort" : "-1", "ToPort" : "-1", "CidrIp" : "0.0.0.0/0" },
+          { "IpProtocol" : "tcp", "FromPort" : "22", "ToPort" : "22", "CidrIp" : "0.0.0.0/0" },
+          { "IpProtocol" : "tcp", "FromPort" : "4149", "ToPort" : "4149", "CidrIp" : "0.0.0.0/0" },
+          { "IpProtocol" : "udp", "FromPort" : "0", "ToPort" : "65535", "CidrIp" : "0.0.0.0/0" }
+        ],
+        "SecurityGroupEgress" : [
+          { "IpProtocol" : "-1", "CidrIp" : "0.0.0.0/0" }
+        ],
+        "Tags" : [
+          { "Key" : "Name", "Value" : {"Fn::Sub":"${AWS::StackName}-sg-data"} },
+          {"Key" : {
+            "Ref" : "CustomTagName"
+          },
+            "Value": {
+              "Ref" : "CustomTagValue"
+            }
+          }
+        ]
+      }
+    }
+  }
+}
+

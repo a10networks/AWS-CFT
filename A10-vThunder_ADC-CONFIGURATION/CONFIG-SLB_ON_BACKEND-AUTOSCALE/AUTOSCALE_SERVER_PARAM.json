@@ -1,0 +1,21 @@
+{
+  "parameters": {
+    "desiredCapacity": 1,
+    "lambdaFunction": "lambda-function",
+    "autoscaleGroupName": "auto-scale-group",
+    "port-list": [
+    {
+      "port-number": 53,
+      "protocol": "udp"
+    },
+    {
+      "port-number": 80,
+      "protocol": "tcp"
+    },
+    {
+      "port-number": 443,
+      "protocol": "tcp"
+    }
+  ]
+  }
+}

@@ -1,0 +1,3 @@
+[default]
+region = your_working_region
+output = json
