@@ -172,7 +172,7 @@ If you have created a new example, please save the CFT/Python file with a resour
 ## Documentation
 
 A10 AWS Cloud Formation template documentation is available below location, 
-- AWS : https://documentation.a10networks.com -> Infrastructure as Code (IAC) -> AWS
+- AWS : https://documentation.a10networks.com/docs/IaC/aws-cloud-formation/1-2-0/
 
 
 
