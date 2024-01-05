@@ -1,0 +1,11 @@
+{
+  "parameters": {
+  "publicIpList": ["X.X.X.X","X.X.X.X"],
+     "sslConfig": {
+      "requestTimeOut": 40,
+          "path": "server.pem",
+          "file": "server",
+          "certificationType": "pem"
+    }
+
+}}

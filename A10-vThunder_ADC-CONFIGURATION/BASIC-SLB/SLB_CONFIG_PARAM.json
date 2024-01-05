@@ -1,0 +1,122 @@
+{
+  "parameters": {
+    "template_http": 0,
+    "template_persist_cookie": 0,
+    "vth_username": "admin",
+    "data_interface_count":1,
+    "publicIpList": ["X.X.X.X","X.X.X.X"],
+    "server_details": {
+      "value": [
+       
+        {
+          "server-name": "server1",
+          "pvt-ip-address": "X.X.X.X"
+        },
+	 {
+          "server-name": "server2",
+          "pvt-ip-address": "X.X.X.X"
+        }
+	  
+      ]},
+    "slbServerPortList": {
+      "value": [
+          {
+              "port-number": 53,
+              "protocol": "udp"
+          },
+          {
+              "port-number": 80,
+              "protocol": "tcp"
+          },
+          {
+              "port-number": 443,
+              "protocol": "tcp"
+          }
+      ]
+  },
+    "cookie-list":{
+      "value": [
+      {
+          "name": "persist-cookie",
+          "expire": 60,
+          "encrypt-level": 0,
+          "cookie-name":"a10-cookies",
+          "match-type": 1,
+          "service-group":1
+
+      }
+  ]},
+    "httpList": {
+      "value": [
+        {
+          "name":"host-switch",
+          "host-switching": [
+            {
+              "host-switching-type":"contains",
+              "host-match-string":"s1",
+              "host-service-group":"sg80"
+            }
+          ]
+        },
+        {
+          "name":"url-switch",
+          "url-switching": [
+            {
+              "url-switching-type":"regex-match",
+              "url-match-string":"s1",
+              "url-service-group":"sg80"
+            }
+          ]
+        }
+      ]
+    },
+
+     "virtual_Server_List": {
+        "virtual-server-name": "vip",
+        "eth1-ip-address": "X.X.X.X",
+        "metadata": {
+          "description": "Specify ethernet 1 primary private IP address in case of SLB without High Availability and secondary private IP address in case of SLB with High Availability."
+        },
+        "value": [
+          {
+            "port-number": 53,
+            "protocol": "udp",
+            "auto": 1,
+            "service-group": "sg53"
+          },
+          {
+            "port-number": 80,
+            "protocol": "http",
+            "auto": 1,
+            "service-group": "sg80",
+            "template-http": "url-switch",
+             "template-persist-cookie": "persist-cookie"
+          },
+          {
+            "port-number": 443,
+            "protocol": "https",
+            "auto": 1,
+            "service-group": "sg443",
+            "template-http": "url-switch",
+            "template-persist-cookie": "persist-cookie"
+
+          }
+        ]
+      },
+        "serviceGroupList": {
+        "value": [
+          {
+            "name": "sg443",
+            "protocol": "tcp"
+          },
+          {
+            "name": "sg53",
+            "protocol": "udp"
+          },
+          {
+            "name": "sg80",
+            "protocol": "tcp"
+          }
+        ]
+      }
+  }}

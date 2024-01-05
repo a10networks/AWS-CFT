@@ -1,0 +1,223 @@
+{
+  "AWSTemplateFormatVersion":"2010-09-09",
+  "Description":"An AWS CFT template to configure backend auto-scale app servers for vThunder SLB.",
+  "Parameters":{
+    "Zone":{
+      "Description":"Choose from the existing availability zones. AWS offers a range of options for managing availability and resiliency for your applications. Architect your solution to use replicated VMs in Availability Zones to protect your apps and data from datacenter outages and maintenance events.",
+      "Type":"AWS::EC2::AvailabilityZone::Name",
+      "MinLength":"1",
+      "MaxLength":"64",
+      "AllowedPattern":"[-_ a-zA-Z0-9]*",
+      "ConstraintDescription":"supports only alphanumeric characters, spaces, dashes and underscores"
+    },
+    "KeyPair":{
+      "Description":"Choose keypair from the available keypair. A key pair,consisting of a public key and a private key, is a set of security credentials that you use to prove your identity when connecting to an Amazon EC2 instance.",
+      "Type":"AWS::EC2::KeyPair::KeyName",
+      "MinLength":"1",
+      "MaxLength":"64",
+      "AllowedPattern":"[-_ a-zA-Z0-9]*",
+      "ConstraintDescription":"supports only alphanumeric characters, spaces, dashes and underscores"
+    },
+    "Size" : {
+      "Type"          : "String",
+      "Default"       : "t2.micro",
+      "AllowedValues" : [ "t2.micro","m4.xlarge", "m4.2xlarge", "m4.4xlarge", "m3.2xlarge", "c4.xlarge", "c4.2xlarge", "c4.4xlarge", "c3.xlarge", "c3.2xlarge", "c3.4xlarge", "c3.8xlarge", "p2.8xlarge", "r3.8xlarge", "d2.xlarge", "d2.2xlarge", "i2.8xlarge" ],
+      "ConstraintDescription" : "must be a valid server type.",
+      "Description"   : "Choose from available instance/compute type supported for Linux will be used for configuring web server to test traffic. Default instance type is t2.micro which contains 1 vCPU and 1 GiB memory. In case required instance type is not available in the list, it can be added in the script. Go to aws -> ec2 -> launch instance -> Find and copy relevant instance type."
+    },
+    "SubnetDataID": {
+      "Description": "Choose the available subnet Id for data traffic flow from vThunder to server and this subnet should be available within a selected Virtual Private Network. This CFT template will not create a new subnet.",
+      "Type": "AWS::EC2::Subnet::Id"
+    },
+    "Role": {
+      "Description": "Specify the existing lambda function IAM Role ARN, with lambda function permissions. Go to IAM Dashboard-> Roles-> click on Iam Role for which you need arn -> copy the arn.",
+      "Type": "String"
+    },
+    "AMIID":{
+      "Type" : "String",
+      "Default" : "ami-08c40ec9ead489470",
+      "Description":"Choose from available AMI ID for linux instance. Ubuntu Server 22.04 LTS (HVM), SSD Volume Type is set as a default AMI ID for us-east-1 region. Find more type of linux images available under different regions. Go to aws -> ec2 -> launch instance -> Application and OS Images (Amazon Machine Image) -> search for linux/ubuntu -> AWS marketplace amis -> select the relevant linux/ubuntu image -> copy ami id."
+    },
+    "CPUPolicyTargetValue": {
+      "Default": 80,
+      "Description": "Specify the value to auto scale based on a target value of CPU utilization. For more details check https://docs.aws.amazon.com/autoscaling/ec2/userguide/as-scaling-target-tracking.html",
+      "Type": "String"
+    },
+    "LaunchTemplateVersionNumber": {
+      "Default": 1,
+      "Type": "String",
+      "Description": "Specify the Auto scale group launch template version."
+    },
+    "SecurityGroupData": {
+      "Type": "AWS::EC2::SecurityGroup::Id",
+      "Description": "Choose the available security group ids within a selected Virtual Private Network. This CFT template will not create a new security group."
+    },
+    "AWSSecretManger": {
+      "Type" : "String",
+      "Description":"Specify the existing secret manager name containing AWS access and secret access keys. AWS Secrets Manager helps you to securely encrypt, store and retrieve credentials for your databases and other services."
+    },
+    "vThunderSecretManger": {
+      "Type" : "String",
+      "Description":"Specify the existing Secret manager name containing vThunders password. AWS Secrets Manager helps you to securely encrypt, store and retrieve credentials for your databases and other services. "
+    },
+    "S3Bucket": {
+      "Type": "String",
+      "Description": "Specify the existing s3 bucket name, where CFT_TMPL_AUTOSCALE_SERVER_PACKAGE.zip is uploaded."
+    },
+    "MgmtIPAddress": {
+      "Type": "String",
+      "Description": "Specify the comma separated vThunders public management ip addresses eg: 52.6.74.225, 52.200.52.91"
+    }
+  },
+  "Resources": {
+    "vThunderEventBus": {
+      "Type": "AWS::Events::EventBus",
+      "Properties": {
+        "Name": {"Fn::Sub": "${AWS::StackName}-eventbus"}
+      }
+    },
+    "vThLambda": {
+      "Type": "AWS::Lambda::Function",
+      "DeletionPolicy" : "Retain",
+      "Properties": {
+        "FunctionName": {"Fn::Sub": "${AWS::StackName}-lambda-function"},
+        "Role": {"Ref": "Role"},
+        "Handler": "PYTHON_TMPL_CONFIG_SERVER.lambda_handler",
+        "Environment":{"Variables" : {"Region":{ "Ref" : "AWS::Region" },"vThunderMgmtIPs":{"Ref":"MgmtIPAddress"},"AWSSecretManagerName": {"Ref": "AWSSecretManger"}, "vThunderSecretManagerName": {"Ref": "vThunderSecretManger"}}},
+        "MemorySize":512,
+        "Code": {
+          "S3Bucket": {"Ref": "S3Bucket"},
+          "S3Key": "AUTOSCALE_SERVER_PACKAGE.zip"
+        },
+        "Runtime": "python3.8",
+        "Timeout": 300,
+        "TracingConfig": {
+          "Mode": "Active"
+        }
+      }
+    },
+    "vThEventRule": {
+      "Type": "AWS::Events::Rule",
+      "Properties": {
+        "Description": "EventRule",
+        "EventPattern": {
+          "source": ["aws.autoscaling"],
+          "detail-type": ["EC2 Instance Terminate Successful", "EC2 Instance Launch Successful"],
+          "detail": {
+            "AutoScalingGroupName": [{"Fn::Sub": "${AWS::StackName}-auto-scale-group"}]
+          }
+        },
+        "State": "ENABLED",
+        "Targets": [{
+          "Arn": { "Fn::GetAtt": ["vThLambda", "Arn"] },
+          "Id": "TargetFunctionV1"
+        }]
+      }
+    },
+    "vThPermissionForEventsToInvokeLambda": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "FunctionName": { "Ref": "vThLambda" },
+        "Action": "lambda:InvokeFunction",
+        "Principal": "events.amazonaws.com",
+        "SourceArn":{"Fn::GetAtt": ["vThEventRule", "Arn"] }
+      }
+    },
+    "vThunderLaunchTemplate": {
+      "Type": "AWS::EC2::LaunchTemplate",
+      "Properties": {
+        "LaunchTemplateName": {
+          "Fn::Sub": "${AWS::StackName}-launch-template-for-auto-scaling"
+        },
+        "LaunchTemplateData": {
+          "NetworkInterfaces": [
+            {
+              "DeviceIndex": 0,
+              "AssociatePublicIpAddress" : true,
+              "NetworkCardIndex": 0,
+              "SubnetId": {
+                "Ref": "SubnetDataID"
+              },
+              "Groups": [
+                {
+                  "Ref": "SecurityGroupData"
+                }]
+              ,
+              "DeleteOnTermination": true
+            }
+          ],
+          "Placement": {
+            "Tenancy": "default"
+          },
+          "ImageId": {
+            "Ref": "AMIID"
+          },
+          "InstanceType": {
+            "Ref": "Size"
+          },
+          "KeyName": {
+            "Ref": "KeyPair"
+          }
+        }
+      }
+    },
+    "AutoScalingGroup": {
+      "Type": "AWS::AutoScaling::AutoScalingGroup",
+      "Properties": {
+        "AutoScalingGroupName": {"Fn::Sub": "${AWS::StackName}-auto-scale-group"},
+        "MinSize": "0",
+        "MaxSize": "10",
+        "DesiredCapacity": "1",
+        "LifecycleHookSpecificationList": [
+          {
+            "LifecycleTransition": "autoscaling:EC2_INSTANCE_LAUNCHING",
+            "LifecycleHookName": "instanceLaunchLifecycleHook",
+            "DefaultResult": "CONTINUE",
+            "HeartbeatTimeout": 60
+          },
+          {
+            "LifecycleTransition": "autoscaling:EC2_INSTANCE_TERMINATING",
+            "LifecycleHookName": "instanceTerminateLifecycleHook",
+            "DefaultResult": "CONTINUE",
+            "HeartbeatTimeout": 60
+          }
+        ],
+        "LaunchTemplate": {
+          "LaunchTemplateId": {
+            "Ref": "vThunderLaunchTemplate"
+          },
+          "Version": {
+            "Ref": "LaunchTemplateVersionNumber"
+          }
+        },
+        "Tags" : [
+          {
+            "Key": "Name",
+            "PropagateAtLaunch": true,
+            "Value": "autoscaling-vm"
+          },
+          {"Key": "network-interface-manager-pool",
+            "PropagateAtLaunch": true,
+            "Value":"bastion" }
+        ],
+        "AvailabilityZones" : [{ "Ref" : "Zone" }]
+      }
+    },
+    "vThCPUPolicy": {
+      "Type": "AWS::AutoScaling::ScalingPolicy",
+      "Properties": {
+        "AutoScalingGroupName": {
+          "Ref": "AutoScalingGroup"
+        },
+        "PolicyType": "TargetTrackingScaling",
+        "TargetTrackingConfiguration": {
+          "PredefinedMetricSpecification": {
+            "PredefinedMetricType": "ASGAverageCPUUtilization"
+          },
+          "TargetValue": {
+            "Ref": "CPUPolicyTargetValue"
+          }
+        }
+      }
+    }
+  }}

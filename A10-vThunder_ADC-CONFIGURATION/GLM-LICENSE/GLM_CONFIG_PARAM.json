@@ -1,0 +1,11 @@
+{
+  "parameters": {
+    "publicIpList":  ["X.X.X.X","X.X.X.X"],
+    "dns": {
+      "value": "8.8.8.8"
+    },
+    "entitlement_token": {
+      "value": "XXXXXXXXXXXXX"
+    }
+  }
+}

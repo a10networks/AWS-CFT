@@ -1,0 +1,2 @@
+AWS CloudFormation Sample Templates.
+Copyright 2023 A10 Networks Inc. All Rights Reserved.

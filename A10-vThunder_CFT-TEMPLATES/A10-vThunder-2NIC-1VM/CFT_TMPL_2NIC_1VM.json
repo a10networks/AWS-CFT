@@ -1,0 +1,284 @@
+{
+  "AWSTemplateFormatVersion":"2010-09-09",
+  "Description":"An AWS CFT template for 2 NIC, Single Virtual Machine, Server Load Balancer, CA SSL Certificates",
+
+  "Parameters":{
+    "Zone":{
+      "Type":"AWS::EC2::AvailabilityZone::Name",
+      "MinLength":"1",
+      "MaxLength":"64",
+      "AllowedPattern":"[-_ a-zA-Z0-9]*",
+      "ConstraintDescription":"Supports only alphanumeric characters, spaces, dashes and underscores",
+      "Description":"Choose from the existing availability zones. AWS offers a range of options for managing availability and resiliency for your applications. Architect your solution to use replicated VMs in Availability Zones to protect your apps and data from datacenter outages and maintenance events."
+    },
+    "AMIID":{
+      "Type": "String",
+      "MinLength":"1",
+      "MaxLength":"64",
+      "AllowedPattern":"[-_ a-zA-Z0-9]*",
+      "Default"       : "ami-0c6f62bbb84e4dea0",
+      "Description":"Specify from available AMI ID for a10 thunder instance. A10 Thunder ADC for Advanced Load Balancing - BYOL is set as a default AMI ID for us-east-1 region. Find more type of thunder images available with different capacity under respective regions. Go to aws -> ec2 -> launch instance -> Application and OS Images (Amazon Machine Image) -> search for acos vthunder -> AWS marketplace amis -> select the relevant thunder image -> click on continue -> copy ami id."
+    },
+    "Tenancy" : {
+      "Type"        : "String",
+      "MinLength"   : "7",
+      "MaxLength"   : "9",
+      "Default"     : "default",
+      "AllowedValues" : ["default", "dedicated"],
+      "ConstraintDescription" : "Must be default or dedicated.",
+      "Description" : "Select from the available Tenancy. Tenancy defines how EC2 instances are distributed across physical hardware and affects pricing. Specifies if the Amazon EC2 instance is hosted on shared or single-tenant hardware."
+    },
+    "EC2Instance" : {
+      "Type"          : "String",
+      "Default"       : "m4.xlarge",
+      "AllowedValues" : ["c4.xlarge",
+        "c4.4xlarge",
+        "c4.8xlarge",
+        "d2.xlarge",
+        "d2.2xlarge",
+        "d2.4xlarge",
+        "d2.8xlarge",
+        "m4.xlarge",
+        "m4.2xlarge",
+        "m4.4xlarge",
+        "m4.10xlarge",
+        "i2.xlarge",
+        "i2.2xlarge",
+        "i2.4xlarge",
+        "i2.8xlarge",
+        "c5d.large",
+        "c5d.9xlarge",
+        "c5d.2xlarge",
+        "c5d.4xlarge",
+        "c5.xlarge",
+        "c5.2xlarge",
+        "c5.4xlarge",
+        "c5.9xlarge",
+        "g3.4xlarge",
+        "g3.8xlarge",
+        "i3.large",
+        "i3.xlarge",
+        "i3.2xlarge",
+        "i3.4xlarge",
+        "i3.8xlarge",
+        "m5d.large",
+        "m5d.xlarge",
+        "m5d.2xlarge",
+        "m5d.4xlarge",
+        "m5.large",
+        "m5.xlarge",
+        "m5.2xlarge",
+        "m5.4xlarge",
+        "r5d.large",
+        "r5d.xlarge",
+        "r5d.2xlarge",
+        "r5d.4xlarge",
+        "r5.large",
+        "r5.xlarge",
+        "r5.2xlarge",
+        "r5.4xlarge",
+        "r4.large",
+        "r4.xlarge",
+        "r4.2xlarge",
+        "r4.4xlarge",
+        "r4.8xlarge",
+        "t3.medium",
+        "t3.large",
+        "t3.xlarge",
+        "t3.2xlarge",
+        "z1d.large",
+        "z1d.xlarge",
+        "z1d.2xlarge",
+        "z1d.3xlarge",
+        "z1d.6xlarge"
+      ],
+      "ConstraintDescription" : "Must be a valid EC2 instance type.",
+      "Description"   : "Choose from available instance/compute type supported for vThunder. Default instance type is m4.xlarge which contains 4 vCPU and 64 GiB memory.vThunder requires a minimum of 4 vCPUs , 16 GiB of memory and support of 2 NICs attachment.For more information check AWS marketplace product pricing section. In case required instance type is not available in the list, it can be added in the script. Go to aws -> ec2 -> launch instance -> Find and copy relevant instance type."
+    },
+    "KeyPair":{
+      "Type":"AWS::EC2::KeyPair::KeyName",
+      "MinLength":"1",
+      "MaxLength":"64",
+      "AllowedPattern":"[-_ a-zA-Z0-9]*",
+      "ConstraintDescription":"Supports only alphanumeric characters, spaces, dashes and underscores.",
+      "Description":"Choose keypair from the available keypair. A key pair,consisting of a public key and a private key, is a set of security credentials that you use to prove your identity when connecting to an Amazon EC2 instance."
+    },
+    "VPC": {
+      "Type": "AWS::EC2::VPC::Id",
+      "Description": "Choose the available Virtual Private Network id where to configure vThunder. This CFT template will not create a new Virtual Private Network."
+    },
+    "SubnetMgmtID": {
+      "Type": "AWS::EC2::Subnet::Id",
+      "Description": "Choose the available subnet Id for managing vThunder and this subnet should be available within a selected Virtual Private Network. This CFT template will not create a new subnet."
+    },
+    "SubnetDataID": {
+      "Type": "AWS::EC2::Subnet::Id",
+      "Description": "Choose the available subnet Id for data traffic flow inward and outward to vThunder and this subnet should be available within a selected Virtual Private Network. This CFT template will not create a new subnet."
+    },
+    "CustomTagName" : {
+      "Type" : "String",
+      "Default" : "name",
+      "Description": "Specify the custom tag name. Custom tag key will be added to all resources created via CFT.Tags are used to track the cost of resources in AWS Cost Explorer."
+    },
+    "CustomTagValue" : {
+      "Type" : "String",
+      "Default" : "a10-vthunder-adc",
+      "Description":"Specify the custom tag value. Custom tag key value will be added to all resources created via CFT.Tags are used to track the cost of resources in AWS Cost Explorer."
+    },
+    "SecurityGroupMgmt": {
+      "Type": "AWS::EC2::SecurityGroup::Id",
+      "Description": "Choose the available security group ids within a selected Virtual Private Network. This CFT template will not create a new security group."
+    },
+    "SecurityGroupData": {
+      "Type": "AWS::EC2::SecurityGroup::Id",
+      "Description": "Choose the available security group ids within a selected Virtual Private Network. This CFT template will not create a new security group."
+    },
+    "AllocationIdEIP": {
+      "Type": "String",
+      "Description": "Specify the available elastic IPs allocation IDs. This CFT template will not create a new Elastic Public IP.Go to aws -> ec2 -> Elastic IPs -> Choose the IP and then in summary copy Allocation ID."
+    }
+  },
+  "Mappings" : {
+    "InstanceType2Arch" : {
+      "m4.xlarge"   : { "Arch" : "HVM64"  },
+      "c4.xlarge":    { "Arch" : "HVM64"  },
+      "c4.4xlarge":   { "Arch" : "HVM64"  },
+      "c4.8xlarge":   { "Arch" : "HVM64"  },
+      "d2.xlarge":    { "Arch" : "HVM64"  },
+      "d2.2xlarge":   { "Arch" : "HVM64"  },
+      "d2.4xlarge":   { "Arch" : "HVM64"  },
+      "d2.8xlarge":   { "Arch" : "HVM64"  },
+      "m4.2xlarge":   { "Arch" : "HVM64"  },
+      "m4.4xlarge":   { "Arch" : "HVM64"  },
+      "m4.10xlarge":  { "Arch" : "HVM64"  },
+      "i2.xlarge":    { "Arch" : "HVM64"  },
+      "i2.2xlarge":   { "Arch" : "HVM64"  },
+      "i2.4xlarge":   { "Arch" : "HVM64"  },
+      "i2.8xlarge":   { "Arch" : "HVM64"  },
+      "c5d.large":    { "Arch" : "HVM64"  },
+      "c5d.9xlarge":  { "Arch" : "HVM64"  },
+      "c5d.2xlarge":  { "Arch" : "HVM64"  },
+      "c5d.4xlarge":  { "Arch" : "HVM64"  },
+      "c5.xlarge":    { "Arch" : "HVM64"  },
+      "c5.2xlarge":   { "Arch" : "HVM64"  },
+      "c5.4xlarge":   { "Arch" : "HVM64"  },
+      "c5.9xlarge":   { "Arch" : "HVM64"  },
+      "g3.4xlarge":   { "Arch" : "HVM64"  },
+      "g3.8xlarge":   { "Arch" : "HVM64"  },
+      "i3.large":     { "Arch" : "HVM64"  },
+      "i3.xlarge":    { "Arch" : "HVM64"  },
+      "i3.2xlarge":   { "Arch" : "HVM64"  },
+      "i3.4xlarge":   { "Arch" : "HVM64"  },
+      "i3.8xlarge":   { "Arch" : "HVM64"  },
+      "m5d.large":    { "Arch" : "HVM64"  },
+      "m5d.xlarge":   { "Arch" : "HVM64"  },
+      "m5d.2xlarge":  { "Arch" : "HVM64"  },
+      "m5d.4xlarge":  { "Arch" : "HVM64"  },
+      "m5.large":     { "Arch" : "HVM64"  },
+      "m5.xlarge":    { "Arch" : "HVM64"  },
+      "m5.2xlarge":   { "Arch" : "HVM64"  },
+      "m5.4xlarge":   { "Arch" : "HVM64"  },
+      "r5d.large":    { "Arch" : "HVM64"  },
+      "r5d.xlarge":   { "Arch" : "HVM64"  },
+      "r5d.2xlarge":  { "Arch" : "HVM64"  },
+      "r5d.4xlarge":  { "Arch" : "HVM64"  },
+      "r5.large":     { "Arch" : "HVM64"  },
+      "r5.xlarge":    { "Arch" : "HVM64"  },
+      "r5.2xlarge":   { "Arch" : "HVM64"  },
+      "r5.4xlarge":   { "Arch" : "HVM64"  },
+      "r4.large":     { "Arch" : "HVM64"  },
+      "r4.xlarge":    { "Arch" : "HVM64"  },
+      "r4.2xlarge":   { "Arch" : "HVM64"  },
+      "r4.4xlarge":   { "Arch" : "HVM64"  },
+      "r4.8xlarge":   { "Arch" : "HVM64"  },
+      "t3.medium":    { "Arch" : "HVM64"  },
+      "t3.large":     { "Arch" : "HVM64"  },
+      "t3.xlarge":    { "Arch" : "HVM64"  },
+      "t3.2xlarge":   { "Arch" : "HVM64"  },
+      "z1d.large":    { "Arch" : "HVM64"  },
+      "z1d.xlarge":   { "Arch" : "HVM64"  },
+      "z1d.2xlarge":  { "Arch" : "HVM64"  },
+      "z1d.3xlarge":  { "Arch" : "HVM64"  },
+      "z1d.6xlarge":  { "Arch" : "HVM64"  }
+    }
+  },
+  "Resources": {
+    "MgmtNetworkInterface" : {
+      "Type" : "AWS::EC2::NetworkInterface",
+      "Properties" : {
+        "Description" : "Private network interface",
+        "SubnetId" : { "Ref" : "SubnetMgmtID" },
+        "GroupSet" : [ { "Ref" : "SecurityGroupMgmt" } ],
+        "Tags" : [
+          {"Key" : {
+            "Ref" : "CustomTagName"
+          },
+            "Value": {
+              "Ref" : "CustomTagValue"
+            }
+          },
+          {"Key" : "Name", "Value": {"Fn::Sub":"${AWS::StackName}-inst1-mgmt-nic1"}}
+        ]
+      }
+    },
+    "DataNetworkInterface" : {
+      "Type" : "AWS::EC2::NetworkInterface",
+      "Properties" : {
+        "Description" : "Private network interface",
+        "SubnetId" : { "Ref" : "SubnetDataID" },
+        "GroupSet" : [ { "Ref" : "SecurityGroupData" } ],
+        "Tags" : [
+          {"Key" : {
+            "Ref" : "CustomTagName"
+          },
+            "Value": {
+              "Ref" : "CustomTagValue"
+            }
+          },
+          {"Key" : "Name", "Value": {"Fn::Sub":"${AWS::StackName}-inst1-data-nic1"}}
+        ]
+      }
+    },
+    "vThunder" : {
+      "Type" : "AWS::EC2::Instance",
+      "DependsOn" : [ "MgmtNetworkInterface","DataNetworkInterface"],
+      "Properties" : {
+        "InstanceType" : { "Ref" : "EC2Instance" },
+        "AvailabilityZone" : { "Ref" : "Zone" },
+        "ImageId" : {"Ref" : "AMIID"},
+        "Tags" : [
+          {"Key" : {
+            "Ref" : "CustomTagName"
+          },
+            "Value": {
+              "Ref" : "CustomTagValue"
+            }
+          },
+          {"Key" : "Name", "Value": {"Fn::Sub":"${AWS::StackName}-inst1"}}
+        ] ,
+        "NetworkInterfaces" : [
+          { "DeviceIndex" : "0",
+            "NetworkInterfaceId" : {"Ref" : "MgmtNetworkInterface"}
+          },
+          { "DeviceIndex" : "1",
+            "NetworkInterfaceId" : {"Ref" : "DataNetworkInterface"}
+          }
+        ],
+        "KeyName" : { "Ref" : "KeyPair" },
+        "Tenancy" : { "Ref" : "Tenancy" }
+
+      }
+          },
+
+    "AssociatePublicIpvThunderEIP" : {
+      "Type" : "AWS::EC2::EIPAssociation",
+      "Properties" : {
+        "AllocationId" :{ "Ref" : "AllocationIdEIP" },
+
+        "NetworkInterfaceId" : { "Ref" : "MgmtNetworkInterface" }
+      }
+    }
+
+  }
+}
+
