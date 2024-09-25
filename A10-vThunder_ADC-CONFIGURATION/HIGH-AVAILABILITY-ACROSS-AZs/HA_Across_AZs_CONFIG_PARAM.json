@@ -1,0 +1,150 @@
+{
+  "parameters": {
+    "instance_id_list": [
+      "XXXXXXXXXX",
+      "XXXXXXXXXX"
+    ],
+    "ftp_server_name": "ftp-server",
+    "dns": {
+      "value": "8.8.8.8"
+    },
+    "rib_list_active": [
+      {
+        "ip-dest-addr": "X.X.X.X",
+        "ip-mask": "/X",
+        "ip-nexthop-ipv4": [
+          {
+            "ip-next-hop": "X.X.X.X"
+          }
+        ]
+      }
+    ],
+    "rib_list_standby": [
+      {
+        "ip-dest-addr": "X.X.X.X",
+        "ip-mask": "/X",
+        "ip-nexthop-ipv4": [
+          {
+            "ip-next-hop": "X.X.X.X"
+          }
+        ]
+      }
+    ],
+    "vrrp_a": {
+      "set-id": 1
+    },
+    "terminal": {
+      "idle-timeout": 0
+    },
+    "vrid_list_active_thunder": [
+        {
+          "vrid-val": 0,
+          "floating-ip": {
+          "ip-address-cfg": [
+            {
+              "ip-address": "X.X.X.X"
+            },
+            {
+              "ip-address": "X.X.X.X"
+            }
+          ]
+      },
+          "blade-parameters": {
+            "priority": 100
+          }
+        }
+      ],
+    "vrid_list_standby_thunder": [
+        {
+          "vrid-val": 0,
+          "floating-ip": {
+          "ip-address-cfg": [
+            {
+              "ip-address": "X.X.X.X"
+            },
+            {
+              "ip-address": "X.X.X.X"
+            }
+          ]
+      },
+          "blade-parameters": {
+            "priority": 99
+          }
+        }
+      ],
+    "pool_list_active_thunder":[
+      {
+      "pool-name":"pool_name",
+      "start-address":"X.X.X.X",
+      "end-address":"X.X.X.X",
+      "netmask":"/X"
+    }],
+    "pool_list_standby_thunder":[
+      {
+      "pool-name":"pool_name",
+      "start-address":"X.X.X.X",
+      "end-address":"X.X.X.X",
+      "netmask":"/X"
+    }],
+    "cloud_services_cloud_provider_active_thunder": {
+          "multi-az-failover": {
+            "vrid": {
+              "vrid-number": 0,
+              "route-table-id": "XXXXXXXXXX",
+              "vip-interface-id": "XXXXXXXXXX",
+              "fip-interface-id": "XXXXXXXXXX",
+              "vip-dest": "X.X.X.X/X",
+              "fip-dest": "X.X.X.X/X",
+              "vip-list": [
+                {
+                  "vip-number": 0,
+                  "private-ip": "X.X.X.X",
+                  "elastic-ip": "X.X.X.X"
+                }
+              ]
+            }
+          }
+  },
+  "cloud_services_cloud_provider_standby_thunder": {
+          "multi-az-failover": {
+            "vrid": {
+              "vrid-number": 0,
+              "route-table-id": "XXXXXXXXXX",
+              "vip-interface-id": "XXXXXXXXXX",
+              "fip-interface-id": "XXXXXXXXXX",
+              "vip-dest": "X.X.X.X/X",
+              "fip-dest": "X.X.X.X/X",
+              "vip-list": [
+                {
+                  "vip-number": 0,
+                  "private-ip": "X.X.X.X",
+                  "elastic-ip": "X.X.X.X"
+                }
+              ]
+            }
+          }
+  },
+  "slb_virtual_server_active_thunder":[
+    {
+      "name":"virtual_server_name",
+      "port-list": [{
+        "port-number":80,
+        "protocol":"protocol_type",
+        "pool":"pool_name",
+        "ha-conn-mirror":0
+      }]
+    }
+  ],
+  "slb_virtual_server_standby_thunder":[
+    {
+      "name":"virtual_server_name",
+      "port-list": [{
+        "port-number":80,
+        "protocol":"protocol_type",
+        "pool":"pool_name",
+        "ha-conn-mirror":0
+      }]
+    }
+  ]
+  }
+}

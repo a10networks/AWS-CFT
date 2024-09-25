@@ -1,0 +1,334 @@
+{
+    "AWSTemplateFormatVersion":"2010-09-09",
+    "Description":"An AWS CFT template for creating a VPC and 6 subnets attached with it in same or different Availability Zones.",
+
+    "Parameters":{
+        "DifferentAvailabilityZone": {
+        "Type": "String",
+        "AllowedValues": ["Yes", "No"],
+        "Default": "No",
+        "ConstraintDescription": "must specify Yes or No.",
+        "Description": "Choose Yes if you want to use different availability zones, otherwise No."
+      },
+        "ZoneActiveThunder":{
+        "Type":"AWS::EC2::AvailabilityZone::Name",
+        "MinLength":"1",
+        "MaxLength":"64",
+        "AllowedPattern":"[-_ a-zA-Z0-9]*",
+        "ConstraintDescription":"supports only alphanumeric characters, spaces, dashes and underscores",
+        "Description":"Choose from the existing availability zones for Active vThunder. AWS offers a range of options for managing availability and resiliency for your applications. Architect your solution to use replicated VMs in Availability Zones to protect your apps and data from datacentre outages and maintenance events."
+      },
+      "ZoneStandByThunder":{
+        "Type":"AWS::EC2::AvailabilityZone::Name",
+        "MinLength":"1",
+        "MaxLength":"64",
+        "AllowedPattern":"[-_ a-zA-Z0-9]*",
+        "ConstraintDescription":"supports only alphanumeric characters, spaces, dashes and underscores",
+        "Description":"Choose from the existing availability zones for StandBy vThunder. AWS offers a range of options for managing availability and resiliency for your applications. Architect your solution to use replicated VMs in Availability Zones to protect your apps and data from datacentre outages and maintenance events."
+      },
+        "CidrVPC" : {
+        "Type"        : "String",
+        "MinLength"   : "9",
+        "MaxLength"   : "18",
+        "Default"     : "10.0.0.0/16",
+        "AllowedPattern" : "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+        "ConstraintDescription" : "must be a valid IP CIDR range of the form x.x.x.x/x.",
+        "Description" : "Specify the CIDR of the VPC."
+      },
+        "CidrMgmtSubnetActiveThunder" : {
+        "Type"        : "String",
+        "MinLength"   : "9",
+        "MaxLength"   : "18",
+        "Default"     : "10.0.1.0/24",
+        "AllowedPattern" : "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+        "ConstraintDescription" : "must be a valid IP CIDR range of the form x.x.x.x/x.",
+        "Description" : "Specify the CIDR of the Active Management Subnet."
+      },
+        "CidrMgmtSubnetStandByThunder" : {
+        "Type"        : "String",
+        "MinLength"   : "9",
+        "MaxLength"   : "18",
+        "Default"     : "10.0.4.0/24",
+        "AllowedPattern" : "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+        "ConstraintDescription" : "must be a valid IP CIDR range of the form x.x.x.x/x.",
+        "Description" : "Specify the CIDR of the StandBy Management Subnet."
+      },
+        "CidrDataInSubnetActiveThunder" : {
+        "Type"        : "String",
+        "MinLength"   : "9",
+        "MaxLength"   : "18",
+        "Default"     : "10.0.2.0/24",
+        "AllowedPattern" : "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+        "ConstraintDescription" : "must be a valid IP CIDR range of the form x.x.x.x/x.",
+        "Description" : "Specify the CIDR of the Active Data-In Subnet."
+      },
+        "CidrDataInSubnetStandByThunder" : {
+        "Type"        : "String",
+        "MinLength"   : "9",
+        "MaxLength"   : "18",
+        "Default"     : "10.0.5.0/24",
+        "AllowedPattern" : "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+        "ConstraintDescription" : "must be a valid IP CIDR range of the form x.x.x.x/x.",
+        "Description" : "Specify the CIDR of the StandBy Data-In Subnet."
+      },
+        "CidrDataOutSubnetActiveThunder" : {
+        "Type"        : "String",
+        "MinLength"   : "9",
+        "MaxLength"   : "18",
+        "Default"     : "10.0.3.0/24",
+        "AllowedPattern" : "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+        "ConstraintDescription" : "must be a valid IP CIDR range of the form x.x.x.x/x.",
+        "Description" : "Specify the CIDR of the Active Data-Out Subnet."
+      },
+        "CidrDataOutSubnetStandByThunder" : {
+        "Type"        : "String",
+        "MinLength"   : "9",
+        "MaxLength"   : "18",
+        "Default"     : "10.0.6.0/24",
+        "AllowedPattern" : "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+        "ConstraintDescription" : "must be a valid IP CIDR range of the form x.x.x.x/x.",
+        "Description" : "Specify the CIDR of the StandBy Data-Out Subnet."
+      },
+        "CustomTagName" : {
+        "Type" : "String",
+        "Default" : "name",
+        "Description": "Specify the custom tag name.Custom tag key which will be added to all resources created via CFT.Tags are used to track the cost of resources in AWS Cost Explorer."
+      },
+        "CustomTagValue" : {
+        "Type" : "String",
+        "Default" : "a10-vthunder-adc",
+        "Description": "Specify the custom tag value.Custom tag key which will be added to all resources created via CFT.Tags are used to track the cost of resources in AWS Cost Explorer."
+      }
+    },
+
+    "Conditions": {
+        "UseMultipleAZs": {
+        "Fn::Equals": [
+            {
+            "Ref": "DifferentAvailabilityZone"
+            },
+            "Yes"
+        ]
+        }
+    },
+
+    "Resources":{
+      "vThunderVPC": {
+        "Type": "AWS::EC2::VPC",
+        "Properties": {
+          "CidrBlock": {"Ref" : "CidrVPC"},
+          "Tags" : [
+            {"Key" : { "Ref" : "CustomTagName"}, "Value": { "Ref" : "CustomTagValue"}},
+            {"Key" : "Name", "Value": {"Fn::Sub":"${AWS::StackName}-vpc"}}
+          ]
+        }
+      },
+      "MgmtSubnetActiveThunder":{
+        "Type": "AWS::EC2::Subnet",
+        "Properties": {
+          "VpcId": { "Ref": "vThunderVPC" },
+          "AvailabilityZone": { "Ref": "ZoneActiveThunder" },
+          "CidrBlock":  { "Ref" : "CidrMgmtSubnetActiveThunder" },
+          "Tags": [
+            {"Key" : { "Ref" : "CustomTagName" }, "Value": { "Ref" : "CustomTagValue"}},
+            {"Key" : "Name", "Value": {"Fn::Sub":"${AWS::StackName}-vpc-mgmt-subnet-active"}}
+           ]
+        }
+      },
+      "MgmtSubnetStandByThunder":{
+        "Type": "AWS::EC2::Subnet",
+        "Properties": {
+          "VpcId": { "Ref": "vThunderVPC" },
+          "AvailabilityZone": {
+            "Fn::If": [
+                    "UseMultipleAZs",
+                    {"Ref":"ZoneStandByThunder"},
+                    { "Ref": "ZoneActiveThunder" }
+                ]
+            },
+          "CidrBlock":  { "Ref" : "CidrMgmtSubnetStandByThunder" },
+          "Tags": [
+            {"Key" : { "Ref" : "CustomTagName" }, "Value": { "Ref" : "CustomTagValue"}},
+            {"Key" : "Name", "Value": {"Fn::Sub":"${AWS::StackName}-vpc-mgmt-subnet-standby"}}
+           ]
+        }
+      },
+      "DataInSubnetActiveThunder":{
+        "Type": "AWS::EC2::Subnet",
+        "Properties": {
+          "VpcId": { "Ref": "vThunderVPC" },
+          "AvailabilityZone": { "Ref": "ZoneActiveThunder" },
+          "CidrBlock":  { "Ref" : "CidrDataInSubnetActiveThunder" },
+          "Tags": [
+            {"Key" : { "Ref" : "CustomTagName" }, "Value": { "Ref" : "CustomTagValue"}},
+            {"Key" : "Name", "Value": {"Fn::Sub":"${AWS::StackName}-vpc-data-in-subnet-active"}}
+           ]
+        }
+      },
+      "DataInSubnetStandByThunder":{
+        "Type": "AWS::EC2::Subnet",
+        "Properties": {
+          "VpcId": { "Ref": "vThunderVPC" },
+          "AvailabilityZone": {
+            "Fn::If": [
+                    "UseMultipleAZs",
+                    { "Ref":"ZoneStandByThunder" },
+                    { "Ref": "ZoneActiveThunder" }
+                ]
+            },
+          "CidrBlock":  { "Ref" : "CidrDataInSubnetStandByThunder" },
+          "Tags": [
+            {"Key" : { "Ref" : "CustomTagName" }, "Value": { "Ref" : "CustomTagValue"}},
+            {"Key" : "Name", "Value": {"Fn::Sub":"${AWS::StackName}-vpc-data-in-subnet-standby"}}
+           ]
+        }
+      },
+      "DataOutSubnetActiveThunder":{
+        "Type": "AWS::EC2::Subnet",
+        "Properties": {
+          "VpcId": { "Ref": "vThunderVPC" },
+          "AvailabilityZone": { "Ref": "ZoneActiveThunder" },
+          "CidrBlock":  { "Ref" : "CidrDataOutSubnetActiveThunder" },
+          "Tags": [
+            {"Key" : { "Ref" : "CustomTagName" }, "Value": { "Ref" : "CustomTagValue"}},
+            {"Key" : "Name", "Value": {"Fn::Sub":"${AWS::StackName}-vpc-data-out-subnet-active"}}
+           ]
+        }
+      },
+      "DataOutSubnetStandByThunder":{
+        "Type": "AWS::EC2::Subnet",
+        "Properties": {
+          "VpcId": { "Ref": "vThunderVPC" },
+          "AvailabilityZone": {
+            "Fn::If": [
+                    "UseMultipleAZs",
+                    { "Ref":"ZoneStandByThunder" },
+                    { "Ref": "ZoneActiveThunder" }
+                ]
+            },
+          "CidrBlock":  { "Ref" : "CidrDataOutSubnetStandByThunder" },
+          "Tags": [
+            {"Key" : { "Ref" : "CustomTagName" }, "Value": { "Ref" : "CustomTagValue"}},
+            {"Key" : "Name", "Value": {"Fn::Sub":"${AWS::StackName}-vpc-data-out-subnet-standby"}}
+           ]
+        }
+      },
+      "vThunderInternetGateway" : {
+        "Type" : "AWS::EC2::InternetGateway",
+        "Properties" : {
+          "Tags" : [
+            { "Key" : "name", "Value" :  {"Fn::Sub":"${AWS::StackName}-internet-gateway"}},
+            {"Key" : {"Ref" : "CustomTagName"},"Value": {"Ref" : "CustomTagValue"}}
+          ] }
+      },
+      "AttachGatewayvThunder" : {
+        "Type" : "AWS::EC2::VPCGatewayAttachment",
+        "Properties" : {
+          "VpcId" : { "Ref" : "vThunderVPC" },
+          "InternetGatewayId" : { "Ref" : "vThunderInternetGateway" }
+        }
+      },
+      "vThunderSecurityGroupMgmt" : {
+        "Type" : "AWS::EC2::SecurityGroup",
+        "Properties" : {
+          "GroupDescription" : "Enable HTTP, HTTPS, ICMP and SSH access",
+          "VpcId" : { "Ref" : "vThunderVPC" },
+          "SecurityGroupIngress" : [
+            { "IpProtocol" : "tcp", "FromPort" : "80", "ToPort" : "80", "CidrIp" : "0.0.0.0/0" },
+            { "IpProtocol" : "tcp", "FromPort" : "443", "ToPort" : "443", "CidrIp" : "0.0.0.0/0" },
+            { "IpProtocol" : "tcp", "FromPort" : "22", "ToPort" : "22", "CidrIp" : "0.0.0.0/0" }   ,
+            { "IpProtocol" : "icmp", "FromPort" : "-1", "ToPort" : "-1", "CidrIp" : "0.0.0.0/0" },
+            { "IpProtocol" : "udp", "FromPort" : "161", "ToPort" : "161", "CidrIp" : "0.0.0.0/0" },
+            { "IpProtocol" : "tcp", "FromPort" : "123", "ToPort" : "123", "CidrIp" : "0.0.0.0/0" },
+            { "IpProtocol" : "tcp", "FromPort" : "4149", "ToPort" : "4149", "CidrIp" : "0.0.0.0/0" }
+          ],
+          "SecurityGroupEgress" : [
+            { "IpProtocol" : "-1", "CidrIp" : "0.0.0.0/0" }
+          ],
+          "Tags" : [
+            { "Key" : "Name", "Value" : {"Fn::Sub":"${AWS::StackName}-sg-mgmt"} },
+            {"Key" : {"Ref" : "CustomTagName"},"Value": {"Ref" : "CustomTagValue"}}
+          ]
+        }
+      },
+      "vThunderSecurityGroupData" : {
+        "Type" : "AWS::EC2::SecurityGroup",
+        "Properties" : {
+          "GroupDescription" : "Enable HTTP, SSH access",
+          "VpcId" : { "Ref" : "vThunderVPC" },
+          "SecurityGroupIngress" : [
+            { "IpProtocol" : "tcp", "FromPort" : "80", "ToPort" : "80", "CidrIp" : "0.0.0.0/0" },
+            { "IpProtocol" : "tcp", "FromPort" : "22", "ToPort" : "22", "CidrIp" : "0.0.0.0/0" },
+            { "IpProtocol" : "-1", "FromPort" : "-1", "ToPort" : "-1", "CidrIp" : "0.0.0.0/0" }
+          ],
+          "SecurityGroupEgress" : [
+            { "IpProtocol" : "-1", "CidrIp" : "0.0.0.0/0" }
+          ],
+          "Tags" : [
+            { "Key" : "Name", "Value" : {"Fn::Sub":"${AWS::StackName}-sg-data"} },
+            {"Key" : {"Ref" : "CustomTagName"},"Value": {"Ref" : "CustomTagValue"}}
+          ]
+        }
+      },
+      "PublicRouteTablevThunderVPC" : {
+        "Type" : "AWS::EC2::RouteTable",
+        "Properties" : {
+          "VpcId" : { "Ref" : "vThunderVPC" },
+          "Tags" : [
+            { "Key" : "Name", "Value" :  {"Fn::Sub":"${AWS::StackName}-public-route-table" }},
+            {"Key" : {"Ref" : "CustomTagName"},"Value": {"Ref" : "CustomTagValue"}}
+          ]
+        }},
+      "PublicRoutevThunder" : {
+        "Type" : "AWS::EC2::Route",
+        "DependsOn" : "AttachGatewayvThunder",
+        "Properties" : {
+          "RouteTableId" : { "Ref" : "PublicRouteTablevThunderVPC" },
+          "DestinationCidrBlock" : "0.0.0.0/0",
+          "GatewayId" : { "Ref" : "vThunderInternetGateway" }
+        }
+      },
+      "PublicSubnetRouteTablevThunderAssociationMgmtActiveThunder" : {
+        "Type" : "AWS::EC2::SubnetRouteTableAssociation",
+        "Properties" : {
+          "SubnetId" : { "Ref" : "MgmtSubnetActiveThunder" },
+          "RouteTableId" : { "Ref" : "PublicRouteTablevThunderVPC" }
+        }
+      },
+      "PublicSubnetRouteTablevThunderAssociationMgmtStandByThunder" : {
+        "Type" : "AWS::EC2::SubnetRouteTableAssociation",
+        "Properties" : {
+          "SubnetId" : { "Ref" : "MgmtSubnetStandByThunder" },
+          "RouteTableId" : { "Ref" : "PublicRouteTablevThunderVPC" }
+        }
+      },
+      "PublicSubnetRouteTablevThunderAssociationDataInActiveThunder" : {
+        "Type" : "AWS::EC2::SubnetRouteTableAssociation",
+        "Properties" : {
+          "SubnetId" : { "Ref" : "DataInSubnetActiveThunder" },
+          "RouteTableId" : { "Ref" : "PublicRouteTablevThunderVPC" }
+        }
+      },
+      "PublicSubnetRouteTablevThunderAssociationDataInStandByThunder" : {
+        "Type" : "AWS::EC2::SubnetRouteTableAssociation",
+        "Properties" : {
+          "SubnetId" : { "Ref" : "DataInSubnetStandByThunder" },
+          "RouteTableId" : { "Ref" : "PublicRouteTablevThunderVPC" }
+        }
+      },
+      "PublicSubnetRouteTablevThunderAssociationDataOutActiveThunder" : {
+        "Type" : "AWS::EC2::SubnetRouteTableAssociation",
+        "Properties" : {
+          "SubnetId" : { "Ref" : "DataOutSubnetActiveThunder" },
+          "RouteTableId" : { "Ref" : "PublicRouteTablevThunderVPC" }
+        }
+      },
+      "PublicSubnetRouteTablevThunderAssociationDataOutStandByThunder" : {
+        "Type" : "AWS::EC2::SubnetRouteTableAssociation",
+        "Properties" : {
+          "SubnetId" : { "Ref" : "DataOutSubnetStandByThunder" },
+          "RouteTableId" : { "Ref" : "PublicRouteTablevThunderVPC" }
+        }
+      }
+    }
+}
