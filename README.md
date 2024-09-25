@@ -1,5 +1,5 @@
-# A10 Networks AWS Cloud Formation Templates Release v1.2.0
-Welcome to AWS Cloud Formation Templates 1.2.0 Latest Version.
+# A10 Networks AWS Cloud Formation Templates Release v1.3.0
+Welcome to AWS Cloud Formation Templates 1.3.0 Latest Version.
 
 Thunder® ADCs (Application Delivery Controllers) are high-performance solutions to accelerate and optimize critical applications to ensure delivery and reliability.
 
@@ -9,21 +9,27 @@ This template contains several configurations of Thunder which can be applied vi
 
 ## Support Matrix
 
-|        ACOS ADC         | [CFT 1.0.0](https://github.com/a10networks/AWS-CFT/tree/release/v1.0.0) | [CFT 1.1.0](https://github.com/a10networks/AWS-CFT/tree/release/v1.1.0) | [CFT 1.2.0](https://github.com/a10networks/AWS-CFT/tree/release/v1.2.0) |
-|:-----------------------:|:------------------------------------------------------------------------------------------:|:------------------------------------------------------------------------------------------:|:------------------------------------------------------------------------------------------:|
-|  `ACOS version 6.0.3`   |                                            `No`                                            |                                           `No`                                            |                                           `Yes`                                            |
-| `ACOS version 6.0.2` |                                           `No`                                            |                                           `No`                                            |                                            `Yes`                                            |
-|  `ACOS version 6.0.1`   |                                            `No`                                            |                                           `Yes`                                            |                                           `Yes`                                            |
-| `ACOS version 6.0.0-p2` |                                           `No`                                            |                                           `Yes`                                            |                                            `Yes`                                            |
-| `ACOS version 6.0.0-p1` |                                           `No`                                            |                                            `Yes`                                            |                                           `Yes`                                            |
-| `ACOS version 5.2.1-p9` |                                           `No`                                            |                                            `Yes`                                            |                                           `Yes`                                            |
-| `ACOS version 5.2.1-p6` |                                           `Yes`                                            |                                           `Yes`                                            |                                           `Yes`                                            |
-| `ACOS version 5.2.1-p5` |                                           `Yes`                                            |                                           `Yes`                                            |                                           `Yes`                                            |
-| `ACOS version 5.2.1-p4` |                                           `Yes`                                            |                                            `Yes`                                            |                                           `Yes`                                            |
-| `ACOS version 5.2.1-p3` |                                           `Yes`                                            |                                            `Yes`                                            |                                           `Yes`                                            |
+|        ACOS ADC         | [AWS 1.0.0](https://gitlab.a10networks.com/dev-shared-infra/a10-aws-cft-internal/-/tree/release/v1.0.0) | [AWS 1.1.0](https://gitlab.a10networks.com/dev-shared-infra/a10-aws-cft-internal/-/tree/release/v1.1.0) | [AWS 1.2.0](https://gitlab.a10networks.com/dev-shared-infra/a10-aws-cft-internal/-/tree/feature/SLB-Templates) | [AWS 1.3.0](https://gitlab.a10networks.com/dev-shared-infra/a10-aws-cft-internal/-/tree/feature/Across_HA) |
+|:-----------------------:|:------------------------------------------------------------------------------------------:|:------------------------------------------------------------------------------------------:|:------------------------------------------------------------------------------------------:|:------------------------------------------------------------------------------------------:|
+|  `ACOS version 6.0.4`   |                                            `No`                                            |                                           `No`                                            |                                           `No`                                            |`Yes`                                            |
+|  `ACOS version 6.0.3`   |                                            `No`                                            |                                           `No`                                            |                                           `Yes`                                            |`Yes`                                            |
+| `ACOS version 6.0.2` |                                           `No`                                            |                                           `No`                                            |                                            `Yes`                                            |`Yes`                                            |
+|  `ACOS version 6.0.1`   |                                            `No`                                            |                                           `Yes`                                            |                                           `Yes`                                            |`Yes`                                            |
+| `ACOS version 6.0.0-p2` |                                           `No`                                            |                                           `Yes`                                            |                                            `Yes`                                            |`Yes`                                            |
+| `ACOS version 6.0.0-p1` |                                           `No`                                            |                                            `Yes`                                            |                                           `Yes`                                            |`Yes`                                            |
+| `ACOS version 5.2.1-p6` |                                           `Yes`                                            |                                           `Yes`                                            |                                           `Yes`                                            |`Yes`                                            |
+| `ACOS version 5.2.1-p5` |                                           `Yes`                                            |                                           `Yes`                                            |                                           `Yes`                                            |`Yes`                                            |
+| `ACOS version 5.2.1-p4` |                                           `Yes`                                            |                                            `Yes`                                            |                                           `Yes`                                            |`Yes`                                            |
+| `ACOS version 5.2.1-p3` |                                           `Yes`                                            |                                            `Yes`                                            |                                           `Yes`                                            |`Yes`                                            |
 
 
 ## Release Logs
+
+## AWS Cloud Formation Templates-1.3.0
+
+- Added a template for creating new virtual private cloud (VPC) containing six new subnets and two new security groups (SGs) in same or different availability zone in the same region.
+- Added template for deploying two vThunder instances in the same or different availability zones, including resources such as three network interface cards, Private IPs (Alien IPs), and Elastic IPs. 
+- Added script for HA Across AZs configuration. 
 
 ## AWS Cloud Formation Templates-1.2.0
 
@@ -172,7 +178,7 @@ If you have created a new example, please save the CFT/Python file with a resour
 ## Documentation
 
 A10 AWS Cloud Formation template documentation is available below location, 
-- AWS : https://documentation.a10networks.com/docs/IaC/aws-cloud-formation/1-2-0/
+- AWS : https://documentation.a10networks.com -> Infrastructure as Code (IAC) -> AWS
 
 
 
