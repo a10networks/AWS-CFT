@@ -1,0 +1,600 @@
+{
+    "AWSTemplateFormatVersion":"2010-09-09",
+    "Description":"An AWS CFT template for deploying two vThunders in the same or different availability zones, including resources such as three network interface cards, Private IPs (Alien IPs), Elastic IPs.",
+    "Parameters":{
+        "DifferentAvailabilityZone": {
+            "Type": "String",
+            "AllowedValues": ["Yes", "No"],
+            "Default": "No",
+            "ConstraintDescription": "must specify Yes or No.",
+            "Description": "Choose Yes if you want to deploy your vThunder in different availability zones, otherwise No."
+        },
+        "ZoneActiveThunder":{
+            "Type":"AWS::EC2::AvailabilityZone::Name",
+            "MinLength":"1",
+            "MaxLength":"64",
+            "AllowedPattern":"[-_ a-zA-Z0-9]*",
+            "ConstraintDescription":"Supports only alphanumeric characters, spaces, dashes and underscores.",
+            "Description":"Choose from the existing availability zones for Active vThunder. AWS offers a range of options for managing availability and resiliency for your applications. Architect your solution to use replicated VMs in Availability Zones to protect your apps and data from datacentre outages and maintenance events."
+        },
+        "ZoneStandByThunder":{
+            "Type":"AWS::EC2::AvailabilityZone::Name",
+            "MinLength":"1",
+            "MaxLength":"64",
+            "AllowedPattern":"[-_ a-zA-Z0-9]*",
+            "ConstraintDescription":"Supports only alphanumeric characters, spaces, dashes and underscores.",
+            "Description":"Choose from the existing availability zones for StandBy vThunder. AWS offers a range of options for managing availability and resiliency for your applications. Architect your solution to use replicated VMs in Availability Zones to protect your apps and data from datacentre outages and maintenance events."
+        },
+        "AMIID":{
+            "Type": "String",
+            "MinLength":"1",
+            "MaxLength":"64",
+            "AllowedPattern":"[-_ a-zA-Z0-9]*",
+            "Default"       : "ami-081f97902c66dbf8e",
+            "Description":"Specify the AMI ID of the required A10 vThunder image. By default, ACOS_vThunder_6_0_4_158_PGO AMI ID is set for us-east-1 region. Find more type of thunder images available with different capacity under respective regions. Go to AWS -> EC2 -> Launch instance -> Application and OS Images (Amazon Machine Image) -> search for vThunder -> AWS marketplace AMIs -> select the relevant thunder image -> click on continue -> copy AMI ID. Note: Specify the AMI ID for an A10 vThunder instance with ACOs version 6.0.4 or later."
+        },
+        "KeyPair":{
+            "Type":"AWS::EC2::KeyPair::KeyName",
+            "MinLength":"1",
+            "MaxLength":"64",
+            "AllowedPattern":"[-_ a-zA-Z0-9]*",
+            "ConstraintDescription":"Supports only alphanumeric characters, spaces, dashes and underscores.",
+            "Description":"Choose key pair from the available key pair. A key pair, consisting of a public key and a private key, is a set of security credentials that you use to prove your identity when connecting to an Amazon EC2 instance."
+    
+        },
+        "EC2Instance" : {
+            "Type"          : "String",
+            "Default"       : "m4.xlarge",
+            "AllowedValues" : ["c4.xlarge",
+            "c4.4xlarge",
+            "c4.8xlarge",
+            "d2.xlarge",
+            "d2.2xlarge",
+            "d2.4xlarge",
+            "d2.8xlarge",
+            "m4.xlarge",
+            "m4.2xlarge",
+            "m4.4xlarge",
+            "m4.10xlarge",
+            "i2.xlarge",
+            "i2.2xlarge",
+            "i2.4xlarge",
+            "i2.8xlarge",
+            "c5d.large",
+            "c5d.9xlarge",
+            "c5d.2xlarge",
+            "c5d.4xlarge",
+            "c5.xlarge",
+            "c5.2xlarge",
+            "c5.4xlarge",
+            "c5.9xlarge",
+            "g3.4xlarge",
+            "g3.8xlarge",
+            "i3.large",
+            "i3.xlarge",
+            "i3.2xlarge",
+            "i3.4xlarge",
+            "i3.8xlarge",
+            "m5d.large",
+            "m5d.xlarge",
+            "m5d.2xlarge",
+            "m5d.4xlarge",
+            "m5.large",
+            "m5.xlarge",
+            "m5.2xlarge",
+            "m5.4xlarge",
+            "r5d.large",
+            "r5d.xlarge",
+            "r5d.2xlarge",
+            "r5d.4xlarge",
+            "r5.large",
+            "r5.xlarge",
+            "r5.2xlarge",
+            "r5.4xlarge",
+            "r4.large",
+            "r4.xlarge",
+            "r4.2xlarge",
+            "r4.4xlarge",
+            "r4.8xlarge",
+            "t3.medium",
+            "t3.large",
+            "t3.xlarge",
+            "t3.2xlarge",
+            "z1d.large",
+            "z1d.xlarge",
+            "z1d.2xlarge",
+            "z1d.3xlarge",
+            "z1d.6xlarge"
+            ],
+            "ConstraintDescription" : "Must be a valid vThunder instance type.",
+            "Description"   : "Choose from available instance/compute type supported for vThunder. Default instance type is m4.xlarge which contains 4 vCPU and 64 GiB memory.vThunder requires a minimum of 4 vCPUs , 16 GiB of memory and support of 2 NICs attachment.For more information check AWS marketplace product pricing section. In case required instance type is not available in the list, it can be added in the script. Go to aws -> ec2 -> launch instance -> Find and copy relevant instance type."
+        },
+        "Tenancy" : {
+            "Type"        : "String",
+            "MinLength"   : "7",
+            "MaxLength"   : "9",
+            "Default"     : "default",
+            "AllowedValues" : ["default", "dedicated"],
+            "ConstraintDescription" : "Must be default or dedicated",
+            "Description" : "Select from the available Tenancy. Tenancy defines how EC2 instances are distributed across physical hardware and affects pricing. Specifies if the Amazon EC2 instance is hosted on shared or single-tenant hardware."
+        },
+        "VPC": {
+            "Type": "AWS::EC2::VPC::Id",
+            "Description": "Choose the available Virtual Private Network ID where to configure vThunder. This CFT template will not create a new Virtual Private Network."
+        },
+        "SubnetMgmtActiveThunderID":{
+            "Type": "AWS::EC2::Subnet::Id",
+            "Description": "Choose the available subnet Id for managing Active vThunder and this subnet should be available within a selected Virtual Private Network. This CFT template will not create a new subnet."
+        },
+        "SubnetMgmtStandByThunderID":{
+            "Type": "AWS::EC2::Subnet::Id",
+            "Description": "Choose the available subnet Id for managing StandBy vThunder and this subnet should be available within a selected Virtual Private Network. This CFT template will not create a new subnet."
+        },
+        "SubnetDataInActiveThunderID": {
+            "Type": "AWS::EC2::Subnet::Id",
+            "Description": "Choose the available subnet Id for data traffic flow inward to Active vThunder and this subnet should be available within a selected Virtual Private Network. This CFT template will not create a new subnet."
+        },
+        "SubnetDataInStandByThunderID": {
+            "Type": "AWS::EC2::Subnet::Id",
+            "Description": "Choose the available subnet Id for data traffic flow inward to StandBy vThunder and this subnet should be available within a selected Virtual Private Network. This CFT template will not create a new subnet."
+        },
+        "SubnetDataOutActiveThunderID": {
+            "Type": "AWS::EC2::Subnet::Id",
+            "Description": "Choose the available subnet Id for data traffic flow outward to Active vThunder and this subnet should be available within a selected Virtual Private Network. This CFT template will not create a new subnet."
+        },
+        "SubnetDataOutStandByThunderID": {
+            "Type": "AWS::EC2::Subnet::Id",
+            "Description": "Choose the available subnet Id for data traffic flow outward to StandBy vThunder and this subnet should be available within a selected Virtual Private Network. This CFT template will not create a new subnet."
+        },
+        "PrimaryPrivateIP" : {
+            "Type"        : "String",
+            "Default"     : "10.0.2.117",
+            "AllowedPattern" : "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})",
+            "ConstraintDescription" : "Must be a valid IP address.",
+            "Description": "Specify interface primary IP.  CFT template will not create a new primary IP address for virtual machine 1. For eg vth-inst1-data-ip"
+    
+        },
+        "SecondaryPrivateIPDataInActiveThunder" : {
+            "Type"        : "String",
+            "Default"     : "10.0.2.121",
+            "AllowedPattern" : "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})",
+            "ConstraintDescription" : "Must be a valid IP address.",
+            "Description": "Specify data-in interface secondary IP for active vThunder. This CFT template will not create a new Virtual private IP address for virtual machine 1. For example, vth-inst-data-in-active-ip"
+    
+        },
+        "SecondaryPrivateIPDataOutActiveThunder" : {
+            "Type"        : "String",
+            "Default"     : "10.0.3.103",
+            "AllowedPattern" : "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})",
+            "ConstraintDescription" : "Must be a valid IP address.",
+            "Description": "Specify data-out interface secondary IP for active vThunder. This CFT template will not create a new Virtual private IP address for virtual machine 1. For example, vth-inst-data-in-standby-ip"
+    
+        },
+        "SecondaryPrivateIPDataInStandbyThunder" : {
+            "Type"        : "String",
+            "Default"     : "10.0.5.205",
+            "AllowedPattern" : "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})",
+            "ConstraintDescription" : "Must be a valid IP address.",
+            "Description": "Specify data-in interface secondary IP for standby vThunder. This CFT template will not create a new Virtual private IP address for virtual machine 1. For example, vth-inst-data-out-active-ip"
+    
+        },
+        "SecondaryPrivateIPDataOutStandbyThunder" : {
+            "Type"        : "String",
+            "Default"     : "10.0.6.30",
+            "AllowedPattern" : "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})",
+            "ConstraintDescription" : "Must be a valid IP address.",
+            "Description": "Specify data-out interface secondary IP for standby vThunder. This CFT template will not create a new Virtual private IP address for virtual machine 1. For example, vth-inst-data-in-active-ip"
+    
+        },
+        "CustomTagName" : {
+            "Type" : "String",
+            "Default" : "name",
+            "Description": "Specify the custom tag name. Custom tag key which will be added to all resources created via CFT. Tags are used to track the cost of resources in AWS Cost Explorer."
+        },
+        "CustomTagValue" : {
+            "Type" : "String",
+            "Default" : "a10-vthunder-adc",
+            "Description":"Specify the custom tag value. Custom tag key value which will be added to all resources created via CFT. Tags are used to track the cost of resources in AWS Cost Explorer."
+        },
+        "SecurityGroupMgmt": {
+            "Type": "AWS::EC2::SecurityGroup::Id",
+            "Description": "Choose the available security group ID within a selected Virtual Private Network. This CFT template will not create a new security group."
+        },
+        "SecurityGroupData": {
+            "Type": "AWS::EC2::SecurityGroup::Id",
+            "Description": "Choose the available security group ID within a selected Virtual Private Network. This CFT template will not create a new security group."
+        },
+        "CreatePubVIP": {
+            "Description": "Select Yes if VIP is a public IP address. The default set value is NO.",
+            "Default": "No",
+            "Type": "String",
+            "AllowedValues": [
+                "Yes",
+                "No"
+            ],
+            "ConstraintDescription": "must specify Yes or No."
+        },
+        "AllocationIdEIPActiveThunder": {
+            "Type": "String",
+            "Description": "Specify the available elastic IPs Allocation ID. This CFT template will not create a new Elastic Public IP. Go to aws -> ec2 -> Elastic IPs -> Choose the IP and then in summary copy Allocation ID."
+        },
+        "AllocationIdEIPStandByThunder": {
+            "Type": "String",
+            "Description": "Specify the available elastic IPs allocation IDs. This CFT template will not create a new Elastic Public IP. Go to aws -> ec2 -> Elastic IPs -> Choose the IP and then in summary copy Allocation ID."
+        },
+        "AttachAlienIP":{
+            "Description": "Select Yes if you want to use alien IP. The default set value is NO. This will create the Private IP (Alien IP) HA setup.",
+            "Default": "No",
+            "Type": "String",
+            "AllowedValues": [
+                "Yes",
+                "No"
+            ],
+            "ConstraintDescription": "must specify Yes or No."
+        },
+        "RouteTable":{
+            "Type": "String",
+            "Description": "Specify the route table ID for the selected Virtual Private Network. This CFT template will not create a new route table."
+        },
+        "DataInDestinationCidr":{
+            "Type"        : "String",
+            "MinLength"   : "9",
+            "MaxLength"   : "18",
+            "Default"     : "20.20.20.20/24",
+            "AllowedPattern" : "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+            "ConstraintDescription" : "must be a valid IP CIDR range of the form x.x.x.x/x.",
+            "Description": "Specify the CIDR for data-in interface that does not overlap with the selected VPC subnets, if you have selected YES for AttachAlienIP."
+        },
+        "DataOutDestinationCidr":{
+            "Type"        : "String",
+            "MinLength"   : "9",
+            "MaxLength"   : "18",
+            "Default"     : "30.30.30.30/24",
+            "AllowedPattern" : "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+            "ConstraintDescription" : "must be a valid IP CIDR range of the form x.x.x.x/x.",
+            "Description": "Specify the CIDR for data-in interface that does not overlap with the selected VPC subnets, if you have selected YES for AttachAlienIP."
+        }
+    },
+    "Mappings" : {
+      "InstanceType2Arch" : {
+        "m4.xlarge"   : { "Arch" : "HVM64"  },
+        "c4.xlarge":    { "Arch" : "HVM64"  },
+        "c4.4xlarge":   { "Arch" : "HVM64"  },
+        "c4.8xlarge":   { "Arch" : "HVM64"  },
+        "d2.xlarge":    { "Arch" : "HVM64"  },
+        "d2.2xlarge":   { "Arch" : "HVM64"  },
+        "d2.4xlarge":   { "Arch" : "HVM64"  },
+        "d2.8xlarge":   { "Arch" : "HVM64"  },
+        "m4.2xlarge":   { "Arch" : "HVM64"  },
+        "m4.4xlarge":   { "Arch" : "HVM64"  },
+        "m4.10xlarge":  { "Arch" : "HVM64"  },
+        "i2.xlarge":    { "Arch" : "HVM64"  },
+        "i2.2xlarge":   { "Arch" : "HVM64"  },
+        "i2.4xlarge":   { "Arch" : "HVM64"  },
+        "i2.8xlarge":   { "Arch" : "HVM64"  },
+        "c5d.large":    { "Arch" : "HVM64"  },
+        "c5d.9xlarge":  { "Arch" : "HVM64"  },
+        "c5d.2xlarge":  { "Arch" : "HVM64"  },
+        "c5d.4xlarge":  { "Arch" : "HVM64"  },
+        "c5.xlarge":    { "Arch" : "HVM64"  },
+        "c5.2xlarge":   { "Arch" : "HVM64"  },
+        "c5.4xlarge":   { "Arch" : "HVM64"  },
+        "c5.9xlarge":   { "Arch" : "HVM64"  },
+        "g3.4xlarge":   { "Arch" : "HVM64"  },
+        "g3.8xlarge":   { "Arch" : "HVM64"  },
+        "i3.large":     { "Arch" : "HVM64"  },
+        "i3.xlarge":    { "Arch" : "HVM64"  },
+        "i3.2xlarge":   { "Arch" : "HVM64"  },
+        "i3.4xlarge":   { "Arch" : "HVM64"  },
+        "i3.8xlarge":   { "Arch" : "HVM64"  },
+        "m5d.large":    { "Arch" : "HVM64"  },
+        "m5d.xlarge":   { "Arch" : "HVM64"  },
+        "m5d.2xlarge":  { "Arch" : "HVM64"  },
+        "m5d.4xlarge":  { "Arch" : "HVM64"  },
+        "m5.large":     { "Arch" : "HVM64"  },
+        "m5.xlarge":    { "Arch" : "HVM64"  },
+        "m5.2xlarge":   { "Arch" : "HVM64"  },
+        "m5.4xlarge":   { "Arch" : "HVM64"  },
+        "r5d.large":    { "Arch" : "HVM64"  },
+        "r5d.xlarge":   { "Arch" : "HVM64"  },
+        "r5d.2xlarge":  { "Arch" : "HVM64"  },
+        "r5d.4xlarge":  { "Arch" : "HVM64"  },
+        "r5.large":     { "Arch" : "HVM64"  },
+        "r5.xlarge":    { "Arch" : "HVM64"  },
+        "r5.2xlarge":   { "Arch" : "HVM64"  },
+        "r5.4xlarge":   { "Arch" : "HVM64"  },
+        "r4.large":     { "Arch" : "HVM64"  },
+        "r4.xlarge":    { "Arch" : "HVM64"  },
+        "r4.2xlarge":   { "Arch" : "HVM64"  },
+        "r4.4xlarge":   { "Arch" : "HVM64"  },
+        "r4.8xlarge":   { "Arch" : "HVM64"  },
+        "t3.medium":    { "Arch" : "HVM64"  },
+        "t3.large":     { "Arch" : "HVM64"  },
+        "t3.xlarge":    { "Arch" : "HVM64"  },
+        "t3.2xlarge":   { "Arch" : "HVM64"  },
+        "z1d.large":    { "Arch" : "HVM64"  },
+        "z1d.xlarge":   { "Arch" : "HVM64"  },
+        "z1d.2xlarge":  { "Arch" : "HVM64"  },
+        "z1d.3xlarge":  { "Arch" : "HVM64"  },
+        "z1d.6xlarge":  { "Arch" : "HVM64"  }
+      }
+    },
+    "Conditions": {
+      "AssociatePUBVIP": {
+            "Fn::Equals": [
+                {
+                    "Ref": "CreatePubVIP"
+                },
+                "Yes"
+            ]
+      },
+      "UseMultipleAZs": {
+        "Fn::Equals": [
+            {
+            "Ref": "DifferentAvailabilityZone"
+            },
+            "Yes"
+        ]
+      },
+      "AssociateAlienIP": {
+            "Fn::Equals": [
+                {
+                    "Ref": "AttachAlienIP"
+                },
+                "Yes"
+            ]
+      }
+    },
+    "Resources":{
+        "MgmtNetworkInterfaceActiveThunder" : {
+            "Type" : "AWS::EC2::NetworkInterface",
+            "Properties" : {
+            "Description" : "Private network interface",
+            "SubnetId" : { "Ref" : "SubnetMgmtActiveThunderID" },
+            "GroupSet" : [ { "Ref" : "SecurityGroupMgmt" } ],
+            "SourceDestCheck" : {
+                "Fn::If": [
+                    "AssociateAlienIP",
+                    false,
+                    true
+                ]
+                },
+            "Tags" : [
+                { "Key" : "Name", "Value" :  {"Fn::Sub":"${AWS::StackName}-inst1-mgmt-nic1" }},
+                {"Key" : {"Ref" : "CustomTagName"},"Value": {"Ref" : "CustomTagValue"}}
+            ]
+            }
+        },
+        "MgmtNetworkInterfaceStandByThunder" : {
+            "Type" : "AWS::EC2::NetworkInterface",
+            "Properties" : {
+            "Description" : "Private network interface",
+            "SubnetId" : { "Ref" : "SubnetMgmtStandByThunderID" },
+            "GroupSet" : [ { "Ref" : "SecurityGroupMgmt" } ],
+            "SourceDestCheck" : {
+                "Fn::If": [
+                    "AssociateAlienIP",
+                    false,
+                    true
+                ]
+                },
+            "Tags" : [
+                { "Key" : "Name", "Value" :  {"Fn::Sub":"${AWS::StackName}-inst2-mgmt-nic1" }},
+                {"Key" : {"Ref" : "CustomTagName"},"Value": {"Ref" : "CustomTagValue"}}
+            ]
+            }
+        },
+        "DataInNetworkInterfaceActiveThunder" : {
+            "Type" : "AWS::EC2::NetworkInterface",
+            "Properties" : {
+            "Description" : "Private network interface",
+            "SubnetId" : { "Ref" : "SubnetDataInActiveThunderID" },
+            "GroupSet" : [ { "Ref" : "SecurityGroupData" } ],
+            "PrivateIpAddresses" :[{
+                "Primary" :true ,
+                "PrivateIpAddress" :{"Ref" : "PrimaryPrivateIP"}
+            },{
+                "Primary" : false,
+                "PrivateIpAddress" : {"Ref" : "SecondaryPrivateIPDataInActiveThunder"}
+            }
+            ],
+            "SourceDestCheck" : {
+                "Fn::If": [
+                    "AssociateAlienIP",
+                    false,
+                    true
+                ]
+                },
+            "Tags" : [
+                { "Key" : "Name", "Value" :  {"Fn::Sub":"${AWS::StackName}-inst1-datain-nic1" }},
+                {"Key" : {"Ref" : "CustomTagName"},"Value": {"Ref" : "CustomTagValue"}}
+            ]
+            }
+        },
+        "DataInNetworkInterfaceStandByThunder" : {
+            "Type" : "AWS::EC2::NetworkInterface",
+            "Properties" : {
+            "Description" : "Private network interface",
+            "SubnetId" : { "Ref" : "SubnetDataInStandByThunderID" },
+            "GroupSet" : [ { "Ref" : "SecurityGroupData" } ],
+            "PrivateIpAddresses" :[{
+                "Primary" : false,
+                "PrivateIpAddress" : {"Ref" : "SecondaryPrivateIPDataInStandbyThunder"}
+            }
+            ],
+            "SourceDestCheck" : {
+                "Fn::If": [
+                    "AssociateAlienIP",
+                    false,
+                    true
+                ]
+                },
+            "Tags" : [
+                { "Key" : "Name", "Value" :  {"Fn::Sub":"${AWS::StackName}-inst2-datain-nic1" }},
+                {"Key" : {"Ref" : "CustomTagName"},"Value": {"Ref" : "CustomTagValue"}}
+            ]
+            }
+        },
+        "DataOutNetworkInterfaceActiveThunder" : {
+            "Type" : "AWS::EC2::NetworkInterface",
+            "Properties" : {
+            "Description" : "Private network interface",
+            "SubnetId" : { "Ref" : "SubnetDataOutActiveThunderID" },
+            "GroupSet" : [ { "Ref" : "SecurityGroupData" } ],
+            "PrivateIpAddresses" :[{
+                "Primary" : false,
+                "PrivateIpAddress" : {"Ref" : "SecondaryPrivateIPDataOutActiveThunder"}
+            }
+            ],
+            "SourceDestCheck" : {
+                "Fn::If": [
+                    "AssociateAlienIP",
+                    false,
+                    true
+                ]
+                },
+            "Tags" : [
+                { "Key" : "Name", "Value" :  {"Fn::Sub":"${AWS::StackName}-inst1-data-out-nic1" }},
+                {"Key" : {"Ref" : "CustomTagName"},"Value": {"Ref" : "CustomTagValue"}}
+            ]
+            }
+        },
+        "DataOutNetworkInterfaceStandByThunder" : {
+            "Type" : "AWS::EC2::NetworkInterface",
+            "Properties" : {
+            "Description" : "Private network interface",
+            "SubnetId" : { "Ref" : "SubnetDataOutStandByThunderID" },
+            "GroupSet" : [ { "Ref" : "SecurityGroupData" } ],
+            "PrivateIpAddresses" :[{
+                "Primary" : false,
+                "PrivateIpAddress" : {"Ref" : "SecondaryPrivateIPDataOutStandbyThunder"}
+            }
+            ],
+            "SourceDestCheck" : {
+                "Fn::If": [
+                    "AssociateAlienIP",
+                    false,
+                    true
+                ]
+                },
+            "Tags" : [
+                { "Key" : "Name", "Value" :  {"Fn::Sub":"${AWS::StackName}-inst2-data-out-nic1" }},
+                {"Key" : {"Ref" : "CustomTagName"},"Value": {"Ref" : "CustomTagValue"}}
+            ]
+            }
+        },
+        "vThunder1" : {
+            "Type" : "AWS::EC2::Instance",
+            "DependsOn" : [ "MgmtNetworkInterfaceActiveThunder","DataInNetworkInterfaceActiveThunder","DataOutNetworkInterfaceActiveThunder"],
+            "Properties" : {
+            "InstanceType" : { "Ref" : "EC2Instance" },
+            "AvailabilityZone" : { "Ref" : "ZoneActiveThunder" },
+            "ImageId" : {"Ref" : "AMIID"},
+            "Tags" : [
+                {"Key" : "Name", "Value" :  {"Fn::Sub":"${AWS::StackName}-inst1"}},
+                {"Key" : {"Ref" : "CustomTagName"},"Value": {"Ref" : "CustomTagValue"}}
+            ],
+            "NetworkInterfaces" : [
+                { "DeviceIndex" : "0",
+                "NetworkInterfaceId" : {"Ref" : "MgmtNetworkInterfaceActiveThunder"}
+                },
+    
+                { "DeviceIndex" : "1",
+                "NetworkInterfaceId" : {"Ref" : "DataInNetworkInterfaceActiveThunder"}
+                },
+                { "DeviceIndex" : "2",
+                "NetworkInterfaceId" : {"Ref" : "DataOutNetworkInterfaceActiveThunder"}
+                }
+            ],
+            "KeyName" : { "Ref" : "KeyPair" },
+            "Tenancy" : { "Ref" : "Tenancy" }
+            }
+        },
+        "vThunder2" : {
+            "Type" : "AWS::EC2::Instance",
+            "DependsOn" : [ "MgmtNetworkInterfaceStandByThunder","DataInNetworkInterfaceStandByThunder","DataOutNetworkInterfaceStandByThunder"],
+            "Properties" : {
+            "InstanceType" : { "Ref" : "EC2Instance" },
+            "AvailabilityZone": {
+            "Fn::If": [
+                    "UseMultipleAZs",
+                    {"Ref":"ZoneStandByThunder"},
+                    { "Ref": "ZoneActiveThunder" }
+                ]
+            },
+            "ImageId" : {"Ref" : "AMIID"},
+            "Tags" : [
+                {"Key" : "Name", "Value" :  {"Fn::Sub":"${AWS::StackName}-inst2"}},
+                {"Key" : {"Ref" : "CustomTagName"},"Value": {"Ref" : "CustomTagValue"}}
+            ],
+            "NetworkInterfaces" : [
+                { "DeviceIndex" : "0",
+                "NetworkInterfaceId" : {"Ref" : "MgmtNetworkInterfaceStandByThunder"}
+                },
+    
+                { "DeviceIndex" : "1",
+                "NetworkInterfaceId" : {"Ref" : "DataInNetworkInterfaceStandByThunder"}
+                },
+                { "DeviceIndex" : "2",
+                "NetworkInterfaceId" : {"Ref" : "DataOutNetworkInterfaceStandByThunder"}
+                }
+            ],
+            "KeyName" : { "Ref" : "KeyPair" },
+            "Tenancy" : { "Ref" : "Tenancy" }
+            }
+        },
+        "AssociatePublicIpvThunderEIPActiveThunder" : {
+            "Type" : "AWS::EC2::EIPAssociation",
+            "Properties" : {
+            "AllocationId" : { "Ref" : "AllocationIdEIPActiveThunder" },
+            "NetworkInterfaceId" : { "Ref" :"MgmtNetworkInterfaceActiveThunder" }
+        }},
+        "AssociatePublicIpvThunderEIPStandByThunder" : {
+            "Type" : "AWS::EC2::EIPAssociation",
+            "Properties" : {
+            "AllocationId" : { "Ref" : "AllocationIdEIPStandByThunder" },
+            "NetworkInterfaceId" : { "Ref" : "MgmtNetworkInterfaceStandByThunder" }
+        }},
+        "vThunderEIPActiveThunder2" : {
+            "Condition": "AssociatePUBVIP",
+            "DependsOn" : "vThunder1",
+            "Type" : "AWS::EC2::EIP",
+            "Properties" : {
+            "Domain" : "vpc",
+            "Tags" : [
+                { "Key" : "Name", "Value" :  {"Fn::Sub":"${AWS::StackName}-inst1-data-nic1-ip"} },
+                {"Key" : {"Ref" : "CustomTagName"},"Value": {"Ref" : "CustomTagValue"}}
+            ]
+            }
+        },
+        "AssociatePublicIpvThunderEIPActiveThunder2" : {
+            "Condition": "AssociatePUBVIP",
+            "DependsOn" : "vThunderEIPActiveThunder2",
+            "Type" : "AWS::EC2::EIPAssociation",
+            "Properties" : {
+            "AllocationId" : { "Fn::GetAtt" : [ "vThunderEIPActiveThunder2", "AllocationId" ]},
+            "NetworkInterfaceId" : { "Ref" : "DataInNetworkInterfaceActiveThunder" },
+            "PrivateIpAddress": {"Ref" : "SecondaryPrivateIPDataInActiveThunder"}
+        }},
+        "VIPRoute":{
+            "Type": "AWS::EC2::Route",
+            "DependsOn": "DataInNetworkInterfaceActiveThunder",
+            "Condition": "AssociateAlienIP",
+            "Properties": {
+                "RouteTableId": { "Ref": "RouteTable" },
+                "DestinationCidrBlock": { "Ref": "DataInDestinationCidr" },
+                "NetworkInterfaceId": { "Ref": "DataInNetworkInterfaceActiveThunder" }
+            }
+        },
+        "FIPRoute":{
+            "Type": "AWS::EC2::Route",
+            "DependsOn": "DataOutNetworkInterfaceActiveThunder",
+            "Condition": "AssociateAlienIP",
+            "Properties": {
+                "RouteTableId": { "Ref": "RouteTable" },
+                "DestinationCidrBlock": { "Ref": "DataOutDestinationCidr" },
+                "NetworkInterfaceId": { "Ref": "DataOutNetworkInterfaceActiveThunder" }
+            }
+        }
+    }
+}
